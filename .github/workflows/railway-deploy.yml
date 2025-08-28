@@ -1,0 +1,38 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        cd worklog
+        pip install -r requirements.txt
+        
+    - name: Run tests
+      run: |
+        cd worklog
+        python -m pytest tests/ -v
+        
+    - name: Deploy to Railway
+      if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+      uses: railway/deploy@v1
+      with:
+        service: worklog-backend
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
