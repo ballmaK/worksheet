@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 from app.db.base_class import Base
 from app.core.config import settings
@@ -57,15 +57,12 @@ else:
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 创建线程安全的会话工厂
-db_session = scoped_session(SessionLocal)
-
 # 依赖项
 def get_db():
     """
     获取数据库会话，带有完整的错误处理
     """
-    db = db_session()
+    db = SessionLocal()
     try:
         yield db
     except Exception as e:
@@ -86,7 +83,7 @@ def get_db_session():
     """
     上下文管理器版本的数据库会话
     """
-    db = db_session()
+    db = SessionLocal()
     try:
         yield db
         db.commit()

@@ -4,6 +4,7 @@ from app.db.base_class import Base  # noqa
 from app.models.user import User  # noqa
 from app.models.team import Team  # noqa
 from app.models.team_member import TeamMember  # noqa
+from app.models.team_activity import TeamActivity  # noqa
 from app.models.project import Project  # noqa
 from app.models.work_log import WorkLog, Comment  # noqa
 from app.models.reminder import Reminder  # noqa

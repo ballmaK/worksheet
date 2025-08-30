@@ -13,6 +13,15 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: parseInt(process.env.PORT || '5173'),
+    proxy: {
+      // 代理 /api 路径到后端服务器
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path
+      }
+    }
   },
   preview: {
     host: '0.0.0.0',

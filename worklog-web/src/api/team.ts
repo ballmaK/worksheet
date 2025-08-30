@@ -29,6 +29,36 @@ export interface UpdateTeamData extends CreateTeamData {
   id: number
 }
 
+export interface TeamActivity {
+  id: number
+  team_id: number
+  user_id: number
+  activity_type: string
+  title: string
+  content?: string
+  metadata?: any
+  created_at: string
+}
+
+export interface TeamProject {
+  id: number
+  name: string
+  description: string
+  status: string
+  progress: number
+  creator_name: string
+  start_date?: string
+  end_date?: string
+  created_at: string
+}
+
+export interface TeamStatistics {
+  member_count: number
+  project_count: number
+  worklog_count: number
+  task_count: number
+}
+
 export const teamApi = {
   // 获取团队列表
   getTeams() {
@@ -85,6 +115,65 @@ export const teamApi = {
     return requestApi({
       url: `/teams/${id}`,
       method: 'delete'
+    })
+  },
+
+  // 获取团队动态
+  getTeamActivities(
+    teamId: number,
+    params?: {
+      skip?: number
+      limit?: number
+      activity_type?: string
+      start_date?: string
+      end_date?: string
+    }
+  ) {
+    return requestApi<TeamActivity[]>({
+      url: `/teams/${teamId}/activities`,
+      method: 'get',
+      params
+    })
+  },
+
+  // 获取团队项目列表
+  getTeamProjects(
+    teamId: number,
+    params?: {
+      skip?: number
+      limit?: number
+      status?: string
+      keyword?: string
+    }
+  ) {
+    return requestApi<TeamProject[]>({
+      url: `/teams/${teamId}/projects`,
+      method: 'get',
+      params
+    })
+  },
+
+  // 关联项目到团队
+  associateProject(teamId: number, projectId: number) {
+    return requestApi({
+      url: `/teams/${teamId}/projects/${projectId}/associate`,
+      method: 'post'
+    })
+  },
+
+  // 解除项目与团队的关联
+  disassociateProject(teamId: number, projectId: number) {
+    return requestApi({
+      url: `/teams/${teamId}/projects/${projectId}/disassociate`,
+      method: 'delete'
+    })
+  },
+
+  // 获取团队统计信息
+  getTeamStatistics(teamId: number) {
+    return requestApi<TeamStatistics>({
+      url: `/teams/${teamId}/statistics`,
+      method: 'get'
     })
   }
 } 

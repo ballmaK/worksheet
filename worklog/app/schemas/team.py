@@ -26,6 +26,13 @@ class TeamInDB(TeamBase):
 class TeamResponse(TeamInDB):
     pass
 
+# 新增：包含成员信息的团队详情响应
+class TeamDetailResponse(TeamInDB):
+    members: List['TeamMemberResponse'] = []
+
+    class Config:
+        from_attributes = True
+
 class TeamMemberBase(BaseModel):
     role: str = TEAM_MEMBER
 

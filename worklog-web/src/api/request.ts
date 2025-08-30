@@ -4,12 +4,8 @@ import router from '@/router'
 
 // 根据环境设置API基础URL
 const getBaseURL = () => {
-  // 生产环境使用相对路径，由Nginx代理
-  if (import.meta.env.PROD) {
-    return '/api/v1'
-  }
-  // 开发环境使用本地地址
-  return 'http://localhost:8000/api/v1'
+  // 开发和生产环境都使用相对路径，通过代理访问后端
+  return '/api/v1'
 }
 
 const api = axios.create({

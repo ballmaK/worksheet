@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import CalendarDemo from '@/views/CalendarDemo.vue'
 import Teams from '@/views/Teams.vue'
 import Projects from '@/views/Projects.vue'
 
@@ -74,11 +73,14 @@ const router = createRouter({
       component: () => import('@/views/Calendar.vue'),
       meta: { requiresAuth: true }
     },
+    // 隐藏demo路由
+    /*
     {
       path: '/calendar-demo',
       name: 'CalendarDemo',
       component: CalendarDemo
     },
+    */
     {
       path: '/my-teams',
       name: 'MyTeams',
@@ -91,6 +93,8 @@ const router = createRouter({
       component: () => import('@/views/TeamManagement.vue'),
       meta: { requiresAuth: true }
     },
+    // 隐藏其他demo路由
+    /*
     {
       path: '/floating-task-bar-demo',
       name: 'floating-task-bar-demo',
@@ -103,12 +107,15 @@ const router = createRouter({
       component: () => import('@/views/ElectronTaskBarDemo.vue'),
       meta: { requiresAuth: true }
     },
+    */
     {
       path: '/messages',
       name: 'messages',
       component: () => import('@/views/MessageCenter.vue'),
       meta: { requiresAuth: true }
-    },
+    }
+    // 隐藏测试路由
+    /*
     {
       path: '/websocket-test',
       name: 'websocket-test',
@@ -121,6 +128,7 @@ const router = createRouter({
       component: () => import('@/views/NotificationTest.vue'),
       meta: { requiresAuth: true }
     }
+    */
   ]
 })
 

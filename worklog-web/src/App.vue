@@ -59,6 +59,7 @@
             消息中心
             <span v-if="unreadCount > 0" class="message-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
           </el-button>
+          <!-- 隐藏测试按钮
           <el-button v-if="userStore.isLoggedIn" type="primary" link @click="$router.push('/websocket-test')">
             <el-icon><Connection /></el-icon>
             WebSocket测试
@@ -67,6 +68,7 @@
             <el-icon><Bell /></el-icon>
             通知测试
           </el-button>
+          -->
           <el-button
             v-if="userStore.isLoggedIn"
             type="primary"

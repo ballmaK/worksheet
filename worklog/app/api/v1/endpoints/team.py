@@ -13,14 +13,35 @@ from app.models.user import User
 from app.models.work_log import WorkLog
 from app.models.team import Team
 from app.models.team_member import TeamMember
+from app.models.team_activity import TeamActivity
+from app.models.team_invite import TeamInvite
+from app.models.project import Project
 from app.models.enums import TEAM_ADMIN, TEAM_MEMBER
 from app.core import deps
 from app.schemas.work_log import WorkLogResponse
-from app.schemas.team import TeamCreate, TeamUpdate, TeamResponse, TeamMemberCreate, TeamMemberResponse, TeamMemberUpdate
-from app.schemas.team_invite import TeamInviteCreate, TeamInviteResponse, TeamInviteInDB
-from app.models.team_invite import TeamInvite
-from app.crud import crud_team
+from app.schemas.team import (
+    TeamBase, TeamCreate, TeamUpdate, TeamInDB, TeamResponse, TeamDetailResponse,
+    TeamMemberBase, TeamMemberCreate, TeamMemberUpdate, TeamMemberResponse,
+    TeamInviteBase, TeamInviteCreate, TeamInviteResponse, TeamInviteUpdate
+)
+from app.schemas.team_activity import TeamActivityResponse, TeamActivityCreate
+from app.crud import crud_team_activity
 from app.core.email import send_invitation_email, send_invitation_verification_email
+
+# 内联定义TeamProjectDetailResponse
+class TeamProjectDetailResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    status: str
+    progress: int
+    creator_name: str
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 class TeamWallResponse(BaseModel):
     items: List[WorkLogResponse]
@@ -148,6 +169,21 @@ def create_team(
                 team_data["members"].append(member_data)
             
             print(f"响应数据构建完成: {team_data}")
+            
+            # 记录团队创建活动
+            try:
+                crud_team_activity.create_activity_log(
+                    db=db,
+                    team_id=team.id,
+                    user_id=current_user.id,
+                    activity_type="team_created",
+                    title=f"创建了团队：{team.name}",
+                    content=f"创建了新团队 {team.name}",
+                    metadata={"team_name": team.name, "team_description": team.description}
+                )
+            except Exception as e:
+                print(f"记录团队创建活动失败: {str(e)}")
+            
             return TeamResponse(**team_data)
             
         except Exception as e:
@@ -212,7 +248,7 @@ def get_teams(
     
     return team_responses
 
-@router.get("/{team_id}", response_model=TeamResponse)
+@router.get("/{team_id}", response_model=TeamDetailResponse)
 def get_team(
     *,
     db: Session = Depends(get_db),
@@ -222,7 +258,13 @@ def get_team(
     """
     获取团队详情
     """
-    team = db.query(Team).filter(Team.id == team_id).first()
+    # 使用joinedload预加载用户关系
+    from sqlalchemy.orm import joinedload
+    
+    team = db.query(Team).options(
+        joinedload(Team.team_members).joinedload(TeamMember.user)
+    ).filter(Team.id == team_id).first()
+    
     if not team:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -234,7 +276,32 @@ def get_team(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="您不是该团队成员"
         )
-    return TeamResponse.from_orm(team)
+    
+    # 手动构建响应，包含成员信息
+    team_data = {
+        "id": team.id,
+        "name": team.name,
+        "description": team.description,
+        "created_at": team.created_at,
+        "updated_at": team.updated_at,
+        "members": []
+    }
+    
+    # 添加成员信息
+    for team_member in team.team_members:
+        if team_member.user:  # 确保用户关系已加载
+            member_data = {
+                "id": team_member.id,
+                "team_id": team_member.team_id,
+                "user_id": team_member.user_id,
+                "role": team_member.role,
+                "joined_at": team_member.joined_at,
+                "username": team_member.user.username,
+                "email": team_member.user.email
+            }
+            team_data["members"].append(member_data)
+    
+    return TeamDetailResponse(**team_data)
 
 @router.put("/{team_id}", response_model=TeamResponse)
 def update_team(
@@ -366,6 +433,21 @@ def add_team_member(
         print(f"发送团队成员加入通知失败: {e}")
         # 不影响成员加入流程，只记录错误
     
+    # 记录成员加入活动
+    try:
+        user = db.query(User).filter(User.id == member.user_id).first()
+        crud_team_activity.create_activity_log(
+            db=db,
+            team_id=team_id,
+            user_id=current_user.id,
+            activity_type="member_joined",
+            title=f"新成员加入：{user.username if user else '未知用户'}",
+            content=f"用户 {user.username if user else '未知用户'} 加入了团队",
+            metadata={"joined_user_id": member.user_id, "joined_user_name": user.username if user else "未知用户", "role": member.role}
+        )
+    except Exception as e:
+        print(f"记录成员加入活动失败: {str(e)}")
+    
     return team_member
 
 @router.put("/{team_id}/members/{member_id}", response_model=TeamMemberResponse)
@@ -421,10 +503,28 @@ def update_member_role(
                 detail="团队必须至少保留一个管理员"
             )
     
+    # 记录角色变更活动
+    old_role = member.role
+    user = db.query(User).filter(User.id == member.user_id).first()
+    
     # 更新角色
     member.role = role_update.role
     db.commit()
     db.refresh(member)
+    
+    # 记录角色变更活动
+    try:
+        crud_team_activity.create_activity_log(
+            db=db,
+            team_id=team_id,
+            user_id=current_user.id,
+            activity_type="role_changed",
+            title=f"角色变更：{user.username if user else '未知用户'}",
+            content=f"将 {user.username if user else '未知用户'} 的角色从 {old_role} 变更为 {role_update.role}",
+            metadata={"target_user_id": member.user_id, "target_user_name": user.username if user else "未知用户", "old_role": old_role, "new_role": role_update.role}
+        )
+    except Exception as e:
+        print(f"记录角色变更活动失败: {str(e)}")
     
     return member
 
@@ -530,7 +630,13 @@ def get_team_members(
     """
     获取团队成员列表
     """
-    team = db.query(Team).filter(Team.id == team_id).first()
+    from sqlalchemy.orm import joinedload
+    
+    # 使用joinedload预加载用户关系
+    team = db.query(Team).options(
+        joinedload(Team.team_members).joinedload(TeamMember.user)
+    ).filter(Team.id == team_id).first()
+    
     if not team:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -546,8 +652,6 @@ def get_team_members(
     # 手动构建响应数据，确保包含用户信息
     members_response = []
     for member in team.team_members:
-        # 确保加载用户信息
-        db.refresh(member)
         if hasattr(member, 'user') and member.user:
             member_data = {
                 "id": member.id,
@@ -771,8 +875,8 @@ async def invite_team_member(
                     )
                 finally:
                     loop.close()
-            
-            print(f"已发送团队成员加入通知：team_id={team_id}, user_id={existing_user.id}")
+                
+                print(f"已发送团队成员加入通知：team_id={team_id}, user_id={existing_user.id}")
         except Exception as e:
             print(f"发送团队成员加入通知失败: {e}")
             # 不影响成员加入流程，只记录错误
@@ -874,8 +978,8 @@ async def invite_team_member(
                         )
                     finally:
                         loop.close()
-                
-                print(f"已发送团队邀请通知：team_id={team_id}")
+                    
+                    print(f"已发送团队邀请通知：team_id={team_id}")
             except Exception as e:
                 print(f"发送团队邀请通知失败: {e}")
                 # 不影响邀请流程，只记录错误
@@ -936,10 +1040,10 @@ async def get_team_invites(
             email=invite.email,
             role=invite.role,
             status=invite.status,
+            token=invite.token,
             created_at=invite.created_at,
             updated_at=invite.updated_at,
-            inviter_name=inviter_name,
-            team_name=team_name
+            expires_at=invite.expires_at
         ))
     
     return invite_responses
@@ -1182,3 +1286,156 @@ async def resend_invite(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="重新发送验证码失败"
         ) 
+
+# 新增的API接口
+
+@router.get("/{team_id}/activities", response_model=List[TeamActivityResponse])
+def get_team_activities(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    team_id: int,
+    skip: int = 0,
+    limit: int = 50,
+    activity_type: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+) -> Any:
+    """
+    获取团队动态
+    """
+    # 检查用户是否是团队成员
+    team_member = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.user_id == current_user.id
+    ).first()
+    
+    if not team_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="您不是该团队的成员"
+        )
+    
+    activities = crud_team_activity.get_team_activities(
+        db=db,
+        team_id=team_id,
+        skip=skip,
+        limit=limit,
+        activity_type=activity_type,
+        start_date=start_date,
+        end_date=end_date
+    )
+    
+    return activities
+
+@router.get("/{team_id}/projects", response_model=List[TeamProjectDetailResponse])
+def get_team_projects(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    team_id: int,
+    skip: int = 0,
+    limit: int = 50,
+    status: Optional[str] = None,
+    keyword: Optional[str] = None
+) -> Any:
+    """
+    获取团队项目列表
+    """
+    # 检查用户是否是团队成员
+    team_member = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.user_id == current_user.id
+    ).first()
+    
+    if not team_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="您不是该团队的成员"
+        )
+    
+    # 直接查询团队的项目
+    query = db.query(Project).filter(Project.team_id == team_id)
+    
+    # 应用过滤条件
+    if status:
+        query = query.filter(Project.status == status)
+    
+    if keyword:
+        query = query.filter(
+            Project.name.contains(keyword) | Project.description.contains(keyword)
+        )
+    
+    # 获取总数
+    total = query.count()
+    
+    # 分页查询
+    projects = query.order_by(desc(Project.created_at)).offset(skip).limit(limit).all()
+    
+    # 构建响应数据
+    result = []
+    for project in projects:
+        creator = db.query(User).filter(User.id == project.creator_id).first()
+        result.append(TeamProjectDetailResponse(
+            id=project.id,
+            name=project.name,
+            description=project.description,
+            status=project.status.value if project.status else "unknown",
+            progress=project.progress,
+            creator_name=creator.username if creator else "未知用户",
+            start_date=project.start_date,
+            end_date=project.end_date,
+            created_at=project.created_at
+        ))
+    
+    return result
+
+@router.get("/{team_id}/statistics")
+def get_team_statistics(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    team_id: int
+) -> Any:
+    """
+    获取团队统计信息
+    """
+    # 检查用户是否是团队成员
+    team_member = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.user_id == current_user.id
+    ).first()
+    
+    if not team_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="您不是该团队的成员"
+        )
+    
+    # 统计成员数量
+    member_count = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id
+    ).count()
+    
+    # 统计项目数量
+    project_count = db.query(Project).filter(
+        Project.team_id == team_id
+    ).count()
+    
+    # 统计工作日志数量
+    worklog_count = db.query(WorkLog).filter(
+        WorkLog.team_id == team_id
+    ).count()
+    
+    # 统计任务数量
+    from app.models.task import Task
+    task_count = db.query(Task).filter(
+        Task.team_id == team_id
+    ).count()
+    
+    return {
+        "member_count": member_count,
+        "project_count": project_count,
+        "worklog_count": worklog_count,
+        "task_count": task_count
+    } 
