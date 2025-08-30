@@ -529,7 +529,7 @@ const viewProject = (project: any) => {
 
 // 管理项目
 const manageProject = (project: any) => {
-  router.push(`/projects/${project.id}/manage`)
+  router.push(`/projects/${project.id}`)
 }
 
 // 编辑项目

@@ -40,7 +40,6 @@ class Team(Base):
     invites = relationship("TeamInvite", back_populates="team", cascade="all, delete-orphan")
     tasks = relationship("Task", back_populates="team", cascade="all, delete-orphan")
     
-    # 新增关系
-    activities = relationship("TeamActivity", back_populates="team", cascade="all, delete-orphan")
+
 
 # 关联表定义放在模型之后

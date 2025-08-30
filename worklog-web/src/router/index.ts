@@ -38,6 +38,12 @@ const router = createRouter({
       component: Projects
     },
     {
+      path: '/projects/:projectId',
+      name: 'project-management',
+      component: () => import('@/views/ProjectManagement.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/teams/:teamId/members',
       name: 'team-members',
       component: () => import('@/views/TeamMembers.vue'),

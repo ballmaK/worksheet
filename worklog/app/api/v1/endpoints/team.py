@@ -13,7 +13,7 @@ from app.models.user import User
 from app.models.work_log import WorkLog
 from app.models.team import Team
 from app.models.team_member import TeamMember
-from app.models.team_activity import TeamActivity
+
 from app.models.team_invite import TeamInvite
 from app.models.project import Project
 from app.models.enums import TEAM_ADMIN, TEAM_MEMBER
@@ -24,8 +24,8 @@ from app.schemas.team import (
     TeamMemberBase, TeamMemberCreate, TeamMemberUpdate, TeamMemberResponse,
     TeamInviteBase, TeamInviteCreate, TeamInviteResponse, TeamInviteUpdate
 )
-from app.schemas.team_activity import TeamActivityResponse, TeamActivityCreate
-from app.crud import crud_team_activity
+
+
 from app.core.email import send_invitation_email, send_invitation_verification_email
 
 # 内联定义TeamProjectDetailResponse
@@ -1289,44 +1289,7 @@ async def resend_invite(
 
 # 新增的API接口
 
-@router.get("/{team_id}/activities", response_model=List[TeamActivityResponse])
-def get_team_activities(
-    *,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    team_id: int,
-    skip: int = 0,
-    limit: int = 50,
-    activity_type: Optional[str] = None,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None
-) -> Any:
-    """
-    获取团队动态
-    """
-    # 检查用户是否是团队成员
-    team_member = db.query(TeamMember).filter(
-        TeamMember.team_id == team_id,
-        TeamMember.user_id == current_user.id
-    ).first()
-    
-    if not team_member:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="您不是该团队的成员"
-        )
-    
-    activities = crud_team_activity.get_team_activities(
-        db=db,
-        team_id=team_id,
-        skip=skip,
-        limit=limit,
-        activity_type=activity_type,
-        start_date=start_date,
-        end_date=end_date
-    )
-    
-    return activities
+
 
 @router.get("/{team_id}/projects", response_model=List[TeamProjectDetailResponse])
 def get_team_projects(

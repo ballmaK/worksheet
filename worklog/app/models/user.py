@@ -67,7 +67,6 @@ class User(Base):
     # 工作日志模板关系
     # templates = relationship("WorkLogTemplate", back_populates="user", cascade="all, delete-orphan") 
     
-    # 团队活动关系
-    team_activities = relationship("TeamActivity", back_populates="user", cascade="all, delete-orphan")
+
 
 # 移除文件最后的User.templates赋值，改由db/base.py统一赋值 
