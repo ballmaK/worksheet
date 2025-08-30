@@ -26,7 +26,7 @@ declare module 'axios' {
   }
 }
 
-// 声明缺失的模块
+// 声明缺失的模块 - 修复大小写
 declare module '@/api/workLog' {
   export const workLogApi: any;
   export const createWorkLog: any;
