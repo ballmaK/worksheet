@@ -1,42 +1,20 @@
-# 核心Web框架
-fastapi>=0.100.0,<0.101.0
-uvicorn>=0.15.0,<0.16.0
-
-# 数据验证
-pydantic>=2.4.2,<3.0.0
-pydantic-settings>=2.0.3,<3.0.0
-
-# 数据库
-sqlalchemy>=1.4.0,<2.0.0
-pymysql>=1.0.2,<2.0.0
-alembic>=1.7.0,<2.0.0
-
-# 认证和安全
-python-jose[cryptography]>=3.3.0,<4.0.0
-passlib[bcrypt]>=1.7.4,<2.0.0
-bcrypt>=4.0.1,<5.0.0
-
-# HTTP和网络
-requests>=2.26.0,<3.0.0
-httpx>=0.24.0,<1.0.0
-websockets>=11.0.0,<12.0.0
-
-# 文件处理
-python-multipart>=0.0.5,<0.1.0
-aiofiles>=23.0.0,<25.0.0
-
-# 配置和环境
-python-dotenv>=0.21.0,<0.22.0
-
-# 缓存（可选）
-redis>=5.0.0,<6.0.0
-
-# 模板渲染
-jinja2>=3.0.0,<4.0.0
-
-# 邮件发送
-fastapi-mail>=1.4.1,<2.0.0
-
-# 测试（开发时使用）
-pytest>=7.0.0,<8.0.0
-pytest-asyncio>=0.21.0,<1.0.0 
+fastapi==0.104.1
+pydantic==2.5.0
+pydantic-settings==2.1.0
+uvicorn==0.24.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+sqlalchemy==1.4.51
+alembic==1.12.1
+pymysql==1.1.0
+requests==2.31.0
+python-dotenv==1.0.0
+redis==5.0.1
+bcrypt==4.1.2
+jinja2==3.1.2
+fastapi-mail==1.4.1
+pydantic[email]==2.5.0
+websockets==12.0
+aiofiles==23.2.1
+APScheduler==3.10.4 

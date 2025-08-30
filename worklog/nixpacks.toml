@@ -2,10 +2,17 @@
 nixPkgs = ["python39", "mysql", "redis"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = ["pip install -r requirements-minimal.txt"]
 
 [phases.build]
 cmds = ["echo 'Build completed'"]
 
 [start]
 cmd = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+
+[variables]
+PYTHON_VERSION = "3.9"
+PYTHONPATH = "."
+
+[phases.setup.aptPkgs]
+packages = ["python3-pip", "python3-venv"]
