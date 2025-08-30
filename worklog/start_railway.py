@@ -21,8 +21,8 @@ def check_environment():
     print_section("环境检查")
     
     # 检查关键环境变量
-    required_vars = ['PORT', 'MYSQLHOST', 'MYSQLPASSWORD']
-    optional_vars = ['MYSQLPORT', 'MYSQLUSER', 'MYSQLDATABASE', 'SECRET_KEY']
+    required_vars = ['PORT', 'DB_HOST', 'DB_PASSWORD']
+    optional_vars = ['DB_PORT', 'DB_USER', 'DB_NAME', 'SECRET_KEY']
     
     print("📋 必需环境变量:")
     for var in required_vars:

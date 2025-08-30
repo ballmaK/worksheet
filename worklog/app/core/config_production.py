@@ -2,6 +2,15 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 import os
 
+def safe_int(value: str, default: int) -> int:
+    """安全地将字符串转换为整数，处理共享变量未解析的情况"""
+    if not value or value.startswith('$shared.') or value.startswith('${{'):
+        return default
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
 class ProductionSettings(BaseSettings):
     # 基础配置
     PROJECT_NAME: str = "WorkLog Pro"
@@ -11,12 +20,12 @@ class ProductionSettings(BaseSettings):
     SERVER_HOST: str = "0.0.0.0"
     SERVER_PORT: int = int(os.getenv("PORT", "8000"))
     
-    # Railway MySQL配置 - 直接使用共享变量名称
-    DB_HOST: str = os.getenv("MYSQLHOST", "localhost")
-    DB_PORT: int = int(os.getenv("MYSQLPORT", "3306"))
-    DB_USER: str = os.getenv("MYSQLUSER", "root")
-    DB_PASSWORD: str = os.getenv("MYSQLPASSWORD", "")
-    DB_NAME: str = os.getenv("MYSQLDATABASE", "worklog")
+    # Railway MySQL配置 - 使用实际配置的MySQL参数
+    DB_HOST: str = os.getenv("DB_HOST", "localhost")
+    DB_PORT: int = safe_int(os.getenv("DB_PORT"), 3306)
+    DB_USER: str = os.getenv("DB_USER", "root")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
+    DB_NAME: str = os.getenv("DB_NAME", "worklog")
     DB_TABLE_PREFIX: str = "wl_"
     
     # 使用SQLite进行本地开发（设置为True启用）
@@ -37,13 +46,13 @@ class ProductionSettings(BaseSettings):
     
     # Redis配置
     REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
-    REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_PORT: int = safe_int(os.getenv("REDIS_PORT"), 6379)
     REDIS_PASSWORD: Optional[str] = os.getenv("REDIS_PASSWORD")
-    REDIS_DB: int = int(os.getenv("REDIS_DB", "0"))
+    REDIS_DB: int = safe_int(os.getenv("REDIS_DB"), 0)
     
     # 邮件配置
     SMTP_TLS: bool = os.getenv("SMTP_TLS", "false").lower() == "true"
-    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "465"))
+    SMTP_PORT: int = safe_int(os.getenv("SMTP_PORT"), 465)
     SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.163.com")
     SMTP_USER: str = os.getenv("SMTP_USER", "")
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
@@ -55,7 +64,7 @@ class ProductionSettings(BaseSettings):
     DINGTALK_APP_SECRET: Optional[str] = os.getenv("DINGTALK_APP_SECRET")
     
     # 提醒配置
-    DEFAULT_REMINDER_INTERVAL: int = int(os.getenv("DEFAULT_REMINDER_INTERVAL", "30"))
+    DEFAULT_REMINDER_INTERVAL: int = safe_int(os.getenv("DEFAULT_REMINDER_INTERVAL"), 30)
     WORK_HOURS_START: str = os.getenv("WORK_HOURS_START", "09:00")
     WORK_HOURS_END: str = os.getenv("WORK_HOURS_END", "18:00")
     
