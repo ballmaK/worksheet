@@ -29,15 +29,17 @@
 5. **重要**: 选择 `worklog` 目录作为部署目录
 
 #### 2. 配置后端环境变量
-```
-# 数据库配置
-DB_HOST=your-mysql-host
-DB_PORT=3306
-DB_USER=your-mysql-user
-DB_PASSWORD=your-mysql-password
-DB_NAME=work_log
 
-# 安全配置
+**重要**: Railway会自动为MySQL服务提供以下环境变量，无需手动设置：
+- `MYSQLHOST` - MySQL主机地址
+- `MYSQLPORT` - MySQL端口（3306）
+- `MYSQLUSER` - MySQL用户名（root）
+- `MYSQLPASSWORD` - MySQL密码
+- `MYSQLDATABASE` - 数据库名称（railway）
+
+**需要手动配置的环境变量**：
+```
+# 安全配置（必需）
 SECRET_KEY=your-generated-secret-key
 
 # Redis配置（可选）
@@ -53,6 +55,11 @@ SMTP_USER=your-email@163.com
 SMTP_PASSWORD=your-email-password
 EMAILS_FROM_EMAIL=your-email@163.com
 EMAILS_FROM_NAME=WorkLog Pro
+
+# 提醒配置
+DEFAULT_REMINDER_INTERVAL=30
+WORK_HOURS_START=09:00
+WORK_HOURS_END=18:00
 ```
 
 #### 3. 添加数据库服务
