@@ -4,7 +4,7 @@
   "description": "WorkLog Pro Backend API",
   "main": "main.py",
   "scripts": {
-    "start": "python start_server.py",
+    "start": "python start_with_migration.py",
     "dev": "uvicorn main:app --reload --host 0.0.0.0 --port 8000"
   },
   "engines": {
