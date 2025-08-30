@@ -61,7 +61,16 @@ class WebSocketService {
     }
 
     try {
-      const wsUrl = `${import.meta.env.VITE_WS_URL || 'ws://localhost:8000'}/api/v1/ws/messages/?token=${token}`
+      // 根据环境设置WebSocket URL
+      let wsUrl: string
+      if (import.meta.env.PROD) {
+        // 生产环境使用相对路径，由Nginx代理
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+        wsUrl = `${protocol}//${window.location.host}/api/v1/ws/messages/?token=${token}`
+      } else {
+        // 开发环境使用本地地址
+        wsUrl = `${import.meta.env.VITE_WS_URL || 'ws://localhost:8000'}/api/v1/ws/messages/?token=${token}`
+      }
       this.ws = new WebSocket(wsUrl)
 
       this.ws.onopen = () => {
