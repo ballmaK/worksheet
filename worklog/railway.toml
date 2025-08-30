@@ -2,7 +2,7 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "python start_server.py"
+startCommand = "python start_with_debug.py"
 healthcheckPath = "/"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
@@ -10,3 +10,14 @@ restartPolicyMaxRetries = 10
 
 [deploy.variables]
 PYTHON_VERSION = "3.9"
+PYTHONPATH = "."
+
+[deploy.environments.production]
+startCommand = "python start_with_debug.py"
+healthcheckPath = "/"
+healthcheckTimeout = 100
+
+[deploy.environments.production.variables]
+PYTHON_VERSION = "3.9"
+PYTHONPATH = "."
+NODE_ENV = "production"

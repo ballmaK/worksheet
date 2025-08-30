@@ -112,14 +112,20 @@ def determine_database_config():
     
     print("🔍 配置来源分析:")
     
-    if mysql_host and mysql_host != "your-mysql-host":
+    # 检查是否为Railway模板变量
+    def is_template_variable(value):
+        if not value:
+            return False
+        return "${{" in str(value) and "}}" in str(value)
+    
+    if mysql_host and not is_template_variable(mysql_host) and mysql_host != "your-mysql-host":
         print("  🎯 使用Railway MySQL变量")
         config = {
             "host": mysql_host,
             "port": mysql_port or "3306",
             "user": mysql_user or "root",
             "password": mysql_password or "",
-            "database": mysql_database or mysql_database_alt or "railway"
+            "database": mysql_database or mysql_database_alt or "worklog"
         }
     elif db_host and db_host != "localhost":
         print("  🎯 使用通用数据库变量")
@@ -128,7 +134,7 @@ def determine_database_config():
             "port": db_port or "3306",
             "user": db_user or "root",
             "password": db_password or "",
-            "database": db_name or "work_log"
+            "database": db_name or "worklog"
         }
     else:
         print("  ❌ 未找到有效的数据库配置")
@@ -137,7 +143,7 @@ def determine_database_config():
             "port": "3306",
             "user": "root",
             "password": "",
-            "database": "work_log"
+            "database": "worklog"
         }
     
     print(f"\n📊 最终配置:")

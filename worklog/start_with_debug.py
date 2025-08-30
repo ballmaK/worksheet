@@ -14,21 +14,52 @@ def run_debug():
     print("🔍 运行环境诊断...")
     
     try:
-        # 运行诊断脚本
+        # 首先检查Railway配置文件
+        print("1. 检查Railway配置文件...")
         result = subprocess.run(
+            [sys.executable, "check_railway_config.py"],
+            capture_output=True,
+            text=True,
+            cwd=os.getcwd()
+        )
+        
+        print("Railway配置文件检查输出:")
+        print(result.stdout)
+        if result.stderr:
+            print("错误输出:")
+            print(result.stderr)
+        
+        # 然后运行Railway MySQL检查
+        print("\n2. 检查Railway MySQL配置...")
+        result2 = subprocess.run(
+            [sys.executable, "check_railway_mysql.py"],
+            capture_output=True,
+            text=True,
+            cwd=os.getcwd()
+        )
+        
+        print("Railway MySQL检查输出:")
+        print(result2.stdout)
+        if result2.stderr:
+            print("错误输出:")
+            print(result2.stderr)
+        
+        # 最后运行通用环境诊断
+        print("\n3. 运行通用环境诊断...")
+        result3 = subprocess.run(
             [sys.executable, "debug_railway_env.py"],
             capture_output=True,
             text=True,
             cwd=os.getcwd()
         )
         
-        print("诊断输出:")
-        print(result.stdout)
-        if result.stderr:
+        print("通用环境诊断输出:")
+        print(result3.stdout)
+        if result3.stderr:
             print("错误输出:")
-            print(result.stderr)
+            print(result3.stderr)
             
-        return result.returncode == 0
+        return result.returncode == 0 and result2.returncode == 0 and result3.returncode == 0
         
     except Exception as e:
         print(f"⚠️  诊断过程中出现错误: {e}")
