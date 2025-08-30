@@ -2,9 +2,16 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-import speech_recognition as sr
 import json
 from math import ceil
+
+# 尝试导入语音识别模块，如果失败则设置为None
+try:
+    import speech_recognition as sr
+    SPEECH_RECOGNITION_AVAILABLE = True
+except ImportError:
+    sr = None
+    SPEECH_RECOGNITION_AVAILABLE = False
 
 from app.core.security import get_current_user
 from app.db.session import get_db
@@ -751,6 +758,13 @@ async def create_work_log_from_voice(
     """
     通过语音创建工作日志
     """
+    # 检查语音识别模块是否可用
+    if not SPEECH_RECOGNITION_AVAILABLE:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="语音识别功能不可用，请检查SpeechRecognition模块是否正确安装"
+        )
+    
     try:
         # 保存音频文件
         audio_path = f"temp/{audio_file.filename}"

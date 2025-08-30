@@ -2,7 +2,7 @@
 nixPkgs = ["python39", "mysql", "redis"]
 
 [phases.install]
-cmds = ["pip install -r requirements-minimal.txt"]
+cmds = ["pip install -r requirements-railway.txt"]
 
 [phases.build]
 cmds = ["echo 'Build completed'"]
