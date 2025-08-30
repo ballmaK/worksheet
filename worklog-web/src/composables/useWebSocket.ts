@@ -10,11 +10,19 @@ export function useWebSocket() {
   const unreadCount = ref(0)
   const userStore = useUserStore()
   const { showTaskNotification, showTeamNotification, showSystemNotification, showWorklogNotification, showProjectNotification } = useNotification()
+  let statusCheckInterval: number | null = null
 
   // 连接状态更新
   const updateConnectionState = () => {
-    isConnected.value = wsService.isConnected()
-    connectionState.value = wsService.getConnectionState()
+    const newIsConnected = wsService.isConnected()
+    const newConnectionState = wsService.getConnectionState()
+    
+    // 只有当状态真正改变时才更新
+    if (isConnected.value !== newIsConnected || connectionState.value !== newConnectionState) {
+      isConnected.value = newIsConnected
+      connectionState.value = newConnectionState
+      console.log('WebSocket状态更新:', { isConnected: isConnected.value, connectionState: connectionState.value })
+    }
   }
 
   // 连接成功回调
@@ -154,6 +162,25 @@ export function useWebSocket() {
     handleSystemNotification(customEvent.detail)
   }
 
+  // 开始状态检查
+  const startStatusCheck = () => {
+    if (statusCheckInterval) {
+      clearInterval(statusCheckInterval)
+    }
+    // 每2秒检查一次WebSocket状态
+    statusCheckInterval = setInterval(() => {
+      updateConnectionState()
+    }, 2000)
+  }
+
+  // 停止状态检查
+  const stopStatusCheck = () => {
+    if (statusCheckInterval) {
+      clearInterval(statusCheckInterval)
+      statusCheckInterval = null
+    }
+  }
+
   // 初始化WebSocket
   const initWebSocket = async () => {
     // 检查用户是否已登录
@@ -188,6 +215,9 @@ export function useWebSocket() {
     // 连接WebSocket
     await wsService.connect()
     updateConnectionState()
+    
+    // 开始状态检查
+    startStatusCheck()
   }
 
   // 监听用户登录状态变化
@@ -198,6 +228,7 @@ export function useWebSocket() {
     } else {
       console.log('用户已登出，断开WebSocket连接')
       wsService.disconnect()
+      stopStatusCheck()
       updateConnectionState()
       unreadCount.value = 0
     }
@@ -246,6 +277,9 @@ export function useWebSocket() {
     window.removeEventListener('task-notification', handleTaskNotificationEvent)
     window.removeEventListener('project-notification', handleProjectNotificationEvent)
     window.removeEventListener('system-notification', handleSystemNotificationEvent)
+    
+    // 停止状态检查
+    stopStatusCheck()
     
     // 清理WebSocket连接
     wsService.disconnect()
