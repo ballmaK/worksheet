@@ -2,8 +2,18 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
 
+// 根据环境设置API基础URL
+const getBaseURL = () => {
+  // 生产环境使用相对路径，由Nginx代理
+  if (import.meta.env.PROD) {
+    return '/api/v1'
+  }
+  // 开发环境使用本地地址
+  return 'http://localhost:8000/api/v1'
+}
+
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api/v1',
+  baseURL: getBaseURL(),
   timeout: 30000
 })
 
