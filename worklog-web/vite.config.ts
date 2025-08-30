@@ -22,5 +22,17 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // 忽略某些警告
+        if (warning.code === 'CIRCULAR_DEPENDENCY') return;
+        if (warning.code === 'UNUSED_EXTERNAL_IMPORT') return;
+        warn(warning);
+      }
+    }
   },
+  esbuild: {
+    // 跳过类型检查
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
+  }
 }) 

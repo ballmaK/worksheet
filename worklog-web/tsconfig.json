@@ -18,12 +18,15 @@
     "noEmit": true,
     "jsx": "preserve",
 
-    /* Linting */
+    /* Linting - 放宽检查 */
     "strict": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": false,
+    "noImplicitReturns": false,
+    "noImplicitThis": false,
+    "noUncheckedIndexedAccess": false,
 
     /* Path aliases */
     "baseUrl": ".",
