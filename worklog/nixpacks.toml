@@ -8,7 +8,7 @@ cmds = ["pip install -r requirements-railway.txt"]
 cmds = ["echo 'Build completed'"]
 
 [start]
-cmd = "python start_with_migration.py"
+cmd = "python start_with_debug.py"
 
 [variables]
 PYTHON_VERSION = "3.9"

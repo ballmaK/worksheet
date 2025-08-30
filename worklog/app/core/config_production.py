@@ -17,11 +17,14 @@ class ProductionSettings(BaseSettings):
     DB_PORT: int = int(os.getenv("MYSQLPORT", os.getenv("DB_PORT", "3306")))
     DB_USER: str = os.getenv("MYSQLUSER", os.getenv("DB_USER", "root"))
     DB_PASSWORD: str = os.getenv("MYSQLPASSWORD", os.getenv("DB_PASSWORD", ""))
-    DB_NAME: str = os.getenv("MYSQLDATABASE", os.getenv("DB_NAME", "work_log"))
     
-    # 如果MYSQLDATABASE未设置，尝试使用MYSQL_DATABASE
-    if not DB_NAME or DB_NAME == "work_log":
-        DB_NAME = os.getenv("MYSQL_DATABASE", "work_log")
+    # 数据库名称配置 - 优先使用Railway变量
+    _db_name = os.getenv("MYSQLDATABASE")
+    if not _db_name:
+        _db_name = os.getenv("MYSQL_DATABASE")
+    if not _db_name:
+        _db_name = os.getenv("DB_NAME", "work_log")
+    DB_NAME: str = _db_name
     DB_TABLE_PREFIX: str = "wl_"
     
     # 使用SQLite进行本地开发（设置为True启用）
