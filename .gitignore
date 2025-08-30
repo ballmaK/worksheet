@@ -78,3 +78,6 @@ build/
 *.tmp
 *.temp
 .cache/
+
+# Cursor IDE
+.cursor/
