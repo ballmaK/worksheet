@@ -20,6 +20,8 @@ def test_database_connection():
         "RAILWAY_ENVIRONMENT",
         "MYSQLHOST", "MYSQLPORT", "MYSQLUSER", 
         "MYSQLPASSWORD", "MYSQLDATABASE",
+        "MYSQL_DATABASE", "MYSQL_PUBLIC_URL", 
+        "MYSQL_ROOT_PASSWORD", "MYSQL_URL",
         "DB_HOST", "DB_PORT", "DB_USER", 
         "DB_PASSWORD", "DB_NAME"
     ]
@@ -42,6 +44,11 @@ def test_database_connection():
         db_user = os.getenv("MYSQLUSER")
         db_password = os.getenv("MYSQLPASSWORD")
         db_name = os.getenv("MYSQLDATABASE")
+        
+        # 如果MYSQLDATABASE未设置，尝试使用MYSQL_DATABASE
+        if not db_name:
+            db_name = os.getenv("MYSQL_DATABASE", "work_log")
+        
         print(f"\n🎯 使用Railway MySQL配置:")
     else:
         # 通用环境变量

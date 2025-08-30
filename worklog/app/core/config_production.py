@@ -12,11 +12,16 @@ class ProductionSettings(BaseSettings):
     SERVER_PORT: int = int(os.getenv("PORT", "8000"))
     
     # Railway环境变量配置
+    # 支持Railway共享MySQL变量
     DB_HOST: str = os.getenv("MYSQLHOST", os.getenv("DB_HOST", "localhost"))
     DB_PORT: int = int(os.getenv("MYSQLPORT", os.getenv("DB_PORT", "3306")))
     DB_USER: str = os.getenv("MYSQLUSER", os.getenv("DB_USER", "root"))
     DB_PASSWORD: str = os.getenv("MYSQLPASSWORD", os.getenv("DB_PASSWORD", ""))
     DB_NAME: str = os.getenv("MYSQLDATABASE", os.getenv("DB_NAME", "work_log"))
+    
+    # 如果MYSQLDATABASE未设置，尝试使用MYSQL_DATABASE
+    if not DB_NAME or DB_NAME == "work_log":
+        DB_NAME = os.getenv("MYSQL_DATABASE", "work_log")
     DB_TABLE_PREFIX: str = "wl_"
     
     # 使用SQLite进行本地开发（设置为True启用）
