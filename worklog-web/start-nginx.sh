@@ -4,15 +4,20 @@
 PORT=${PORT:-80}
 # 获取后端URL，默认为您提供的后端地址
 BACKEND_URL=${BACKEND_URL:-https://worksheet-backend-production-62f9.up.railway.app}
+# 从BACKEND_URL中提取主机名
+BACKEND_HOST=$(echo $BACKEND_URL | sed 's|https://||' | sed 's|http://||' | sed 's|/.*||')
 
 echo "🚀 启动 Nginx 服务器"
 echo "📡 端口: $PORT"
 echo "🔗 后端地址: $BACKEND_URL"
+echo "🌐 后端主机: $BACKEND_HOST"
 
 # 替换nginx.conf中的$PORT为实际端口
 sed -i "s/\$PORT/$PORT/g" /etc/nginx/nginx.conf
 # 替换nginx.conf中的$BACKEND_URL为实际后端地址
 sed -i "s|\$BACKEND_URL|$BACKEND_URL|g" /etc/nginx/nginx.conf
+# 替换nginx.conf中的$BACKEND_HOST为实际后端主机名
+sed -i "s/\$BACKEND_HOST/$BACKEND_HOST/g" /etc/nginx/nginx.conf
 
 # 检查nginx配置
 echo "🔍 检查 Nginx 配置..."
