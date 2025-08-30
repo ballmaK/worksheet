@@ -7,6 +7,10 @@ class ProductionSettings(BaseSettings):
     PROJECT_NAME: str = "WorkLog Pro"
     API_V1_STR: str = "/api/v1"
     
+    # 服务器配置
+    SERVER_HOST: str = "0.0.0.0"
+    SERVER_PORT: int = int(os.getenv("PORT", "8000"))
+    
     # Railway环境变量配置
     DB_HOST: str = os.getenv("MYSQLHOST", os.getenv("DB_HOST", "localhost"))
     DB_PORT: int = int(os.getenv("MYSQLPORT", os.getenv("DB_PORT", "3306")))

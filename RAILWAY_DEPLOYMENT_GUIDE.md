@@ -30,7 +30,8 @@
 
 #### 2. 配置后端环境变量
 
-**重要**: Railway会自动为MySQL服务提供以下环境变量，无需手动设置：
+**重要**: Railway会自动提供以下环境变量，无需手动设置：
+- `PORT` - 应用端口（Railway自动分配）
 - `MYSQLHOST` - MySQL主机地址
 - `MYSQLPORT` - MySQL端口（3306）
 - `MYSQLUSER` - MySQL用户名（root）
