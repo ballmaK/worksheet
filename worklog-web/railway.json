@@ -8,5 +8,10 @@
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
+  },
+  "environments": {
+    "production": {
+      "BACKEND_URL": "https://worksheet-backend-production-62f9.up.railway.app"
+    }
   }
 }
