@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0 --port $PORT",
-    "start": "vite preview --host 0.0.0.0 --port $PORT",
+    "start": "npx serve -s dist -l $PORT",
     "serve": "serve -s dist -l $PORT",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "electron:dev": "cross-env NODE_ENV=development electron .",
@@ -19,6 +19,7 @@
     "element-plus": "^2.4.3",
     "pinia": "^2.1.7",
     "qalendar": "^3.9.0",
+    "serve": "^14.2.1",
     "vue": "^3.3.9",
     "vue-router": "^4.2.5"
   },
