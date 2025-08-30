@@ -93,51 +93,26 @@ def determine_database_config():
     """确定数据库配置"""
     print_section("数据库配置分析")
     
-    # 检查Railway MySQL变量
+    # 直接使用Railway共享变量名称
     mysql_host = os.getenv("MYSQLHOST")
-    mysql_port = os.getenv("MYSQLPORT")
-    mysql_user = os.getenv("MYSQLUSER")
+    mysql_port = os.getenv("MYSQLPORT", "3306")
+    mysql_user = os.getenv("MYSQLUSER", "root")
     mysql_password = os.getenv("MYSQLPASSWORD")
-    mysql_database = os.getenv("MYSQLDATABASE")
-    
-    # 检查共享MySQL变量
-    mysql_database_alt = os.getenv("MYSQL_DATABASE")
-    
-    # 检查通用变量
-    db_host = os.getenv("DB_HOST")
-    db_port = os.getenv("DB_PORT")
-    db_user = os.getenv("DB_USER")
-    db_password = os.getenv("DB_PASSWORD")
-    db_name = os.getenv("DB_NAME")
+    mysql_database = os.getenv("MYSQLDATABASE", "worklog")
     
     print("🔍 配置来源分析:")
     
-    # 检查是否为Railway模板变量
-    def is_template_variable(value):
-        if not value:
-            return False
-        return "${{" in str(value) and "}}" in str(value)
-    
-    if mysql_host and not is_template_variable(mysql_host) and mysql_host != "your-mysql-host":
-        print("  🎯 使用Railway MySQL变量")
+    if mysql_host and mysql_password:
+        print("  🎯 使用Railway MySQL配置")
         config = {
             "host": mysql_host,
-            "port": mysql_port or "3306",
-            "user": mysql_user or "root",
-            "password": mysql_password or "",
-            "database": mysql_database or mysql_database_alt or "worklog"
-        }
-    elif db_host and db_host != "localhost":
-        print("  🎯 使用通用数据库变量")
-        config = {
-            "host": db_host,
-            "port": db_port or "3306",
-            "user": db_user or "root",
-            "password": db_password or "",
-            "database": db_name or "worklog"
+            "port": mysql_port,
+            "user": mysql_user,
+            "password": mysql_password,
+            "database": mysql_database
         }
     else:
-        print("  ❌ 未找到有效的数据库配置")
+        print("  ❌ 未找到有效的Railway MySQL配置")
         config = {
             "host": "localhost",
             "port": "3306",
@@ -165,7 +140,7 @@ def test_database_connection(config):
     
     try:
         print("\n🔄 正在连接数据库...")
-        engine = create_engine(database_url, echo=False, connect_timeout=10)
+        engine = create_engine(database_url, echo=False)
         
         with engine.connect() as conn:
             # 测试基本连接

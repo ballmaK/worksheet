@@ -67,12 +67,12 @@ def build_database_config():
     """构建数据库配置"""
     print_section("数据库配置构建")
     
-    # 获取环境变量
+    # 直接使用Railway共享变量名称
     mysql_host = os.getenv("MYSQLHOST")
     mysql_port = os.getenv("MYSQLPORT", "3306")
     mysql_user = os.getenv("MYSQLUSER", "root")
     mysql_password = os.getenv("MYSQLPASSWORD")
-    mysql_database = os.getenv("MYSQLDATABASE") or os.getenv("MYSQL_DATABASE", "worklog")
+    mysql_database = os.getenv("MYSQLDATABASE", "worklog")
     
     print("🔧 配置构建过程:")
     print(f"  主机: {mysql_host}")
@@ -82,12 +82,12 @@ def build_database_config():
     print(f"  密码: {'*' * len(mysql_password) if mysql_password else '未设置'}")
     
     # 检查配置有效性
-    if not mysql_host or "${{" in str(mysql_host):
-        print("  ❌ 主机配置无效或包含模板变量")
+    if not mysql_host:
+        print("  ❌ 主机配置无效：MYSQLHOST未设置")
         return None
     
-    if not mysql_password or "${{" in str(mysql_password):
-        print("  ❌ 密码配置无效或包含模板变量")
+    if not mysql_password:
+        print("  ❌ 密码配置无效：MYSQLPASSWORD未设置")
         return None
     
     config = {
@@ -115,7 +115,7 @@ def test_database_connection(config):
     
     try:
         print("\n🔄 正在连接数据库...")
-        engine = create_engine(database_url, echo=False, connect_timeout=10)
+        engine = create_engine(database_url, echo=False)
         
         with engine.connect() as conn:
             # 测试基本连接

@@ -6,9 +6,16 @@ Railway配置文件检查脚本
 
 import os
 import sys
-import toml
 import json
 from pathlib import Path
+
+# 尝试导入toml，如果失败则跳过toml相关检查
+try:
+    import toml
+    TOML_AVAILABLE = True
+except ImportError:
+    TOML_AVAILABLE = False
+    print("⚠️  toml模块未安装，将跳过toml配置文件检查")
 
 def print_section(title):
     """打印分隔标题"""
@@ -19,6 +26,10 @@ def print_section(title):
 def check_railway_toml():
     """检查railway.toml配置文件"""
     print_section("Railway.toml配置检查")
+    
+    if not TOML_AVAILABLE:
+        print("❌ toml模块未安装，无法检查railway.toml")
+        return False
     
     config_file = Path("railway.toml")
     if not config_file.exists():
@@ -155,6 +166,10 @@ def check_nixpacks_toml():
     """检查nixpacks.toml配置文件"""
     print_section("Nixpacks.toml配置检查")
     
+    if not TOML_AVAILABLE:
+        print("❌ toml模块未安装，无法检查nixpacks.toml")
+        return False
+    
     config_file = Path("nixpacks.toml")
     if not config_file.exists():
         print("❌ nixpacks.toml 文件不存在")
@@ -258,7 +273,7 @@ def check_config_consistency():
     start_commands = []
     
     # 收集所有启动命令
-    if Path("railway.toml").exists():
+    if Path("railway.toml").exists() and TOML_AVAILABLE:
         try:
             with open("railway.toml", 'r', encoding='utf-8') as f:
                 config = toml.load(f)
@@ -276,7 +291,7 @@ def check_config_consistency():
         except:
             pass
     
-    if Path("nixpacks.toml").exists():
+    if Path("nixpacks.toml").exists() and TOML_AVAILABLE:
         try:
             with open("nixpacks.toml", 'r', encoding='utf-8') as f:
                 config = toml.load(f)
