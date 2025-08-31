@@ -1,22 +1,15 @@
 <template>
   <div class="logo-container" :class="[`logo-${size}`, { 'logo-clickable': clickable }]" @click="handleClick">
-    <img 
-      v-if="size === 'large'" 
-      src="@/assets/logo-large.svg" 
-      alt="WorkLog Pro" 
-      class="logo-image"
-    />
-    <img 
-      v-else 
-      src="@/assets/logo.svg" 
-      alt="WorkLog Pro" 
-      class="logo-image"
-    />
+    <el-icon class="logo-icon" :size="iconSize">
+      <Monitor />
+    </el-icon>
     <span v-if="showText" class="logo-text">WorkLog Pro</span>
   </div>
 </template>
 
 <script setup lang="ts">
+import { Monitor } from '@element-plus/icons-vue'
+
 interface Props {
   size?: 'small' | 'medium' | 'large'
   showText?: boolean
@@ -34,6 +27,14 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
+
+const iconSize = computed(() => {
+  switch (props.size) {
+    case 'small': return 16
+    case 'large': return 48
+    default: return 24
+  }
+})
 
 const handleClick = () => {
   if (props.clickable) {
