@@ -112,7 +112,7 @@ def get_project_overview(
                 "id": tm.user.id,
                 "username": tm.user.username,
                 "role": tm.role,
-                "joined_at": tm.created_at
+                "joined_at": tm.joined_at
             }
             for tm in team_members
         ]

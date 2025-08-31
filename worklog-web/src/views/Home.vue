@@ -195,7 +195,7 @@
                 </div>
               </div>
               <div class="project-actions">
-                <el-button type="primary" link @click="$router.push(`/project/${project.id}`)">
+                <el-button type="primary" link @click="$router.push(`/projects/${project.id}`)">
                   查看
                 </el-button>
               </div>
