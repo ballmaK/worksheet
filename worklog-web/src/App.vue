@@ -90,6 +90,9 @@
                 <el-dropdown-item @click="$router.push('/settings')">
                   <el-icon><Setting /></el-icon>系统设置
                 </el-dropdown-item>
+                <el-dropdown-item @click="$router.push('/download')">
+                  <el-icon><Download /></el-icon>下载客户端
+                </el-dropdown-item>
                 <el-dropdown-item divided @click="handleLogout">
                   <el-icon><SwitchButton /></el-icon>退出登录
                 </el-dropdown-item>
@@ -135,7 +138,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Monitor, Plus, Document, UserFilled, Folder, User, Setting, SwitchButton, Calendar, HomeFilled, Timer, Message, Connection, Bell } from '@element-plus/icons-vue'
+import { Monitor, Plus, Document, UserFilled, Folder, User, Setting, SwitchButton, Calendar, HomeFilled, Timer, Message, Connection, Bell, Download } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { userApi } from '@/api/user'
 import FloatingTaskBar from '@/components/FloatingTaskBar.vue'

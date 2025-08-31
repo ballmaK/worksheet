@@ -41,6 +41,11 @@
         <el-icon><Setting /></el-icon>
         <template #title>系统设置</template>
       </el-menu-item>
+
+      <el-menu-item index="/download">
+        <el-icon><Download /></el-icon>
+        <template #title>下载客户端</template>
+      </el-menu-item>
     </el-menu>
 
     <div class="menu-footer">
@@ -68,7 +73,8 @@ import {
   Setting,
   Expand,
   Fold,
-  Monitor
+  Monitor,
+  Download
 } from '@element-plus/icons-vue'
 
 const route = useRoute()

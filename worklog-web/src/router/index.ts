@@ -99,6 +99,11 @@ const router = createRouter({
       component: () => import('@/views/TeamManagement.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/download',
+      name: 'download',
+      component: () => import('@/views/Download.vue')
+    },
     // 隐藏其他demo路由
     /*
     {

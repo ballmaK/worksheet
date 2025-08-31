@@ -126,6 +126,17 @@
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="12" :md="8">
+        <el-card class="quick-action-card" @click="$router.push('/download')">
+          <div class="action-content">
+            <el-icon class="action-icon"><Download /></el-icon>
+            <div class="action-text">
+              <div class="action-title">下载桌面客户端</div>
+              <div class="action-desc">享受更好的工作体验</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :sm="12" :md="8">
         <el-card class="quick-action-card" @click="$router.push('/calendar')">
           <div class="action-content">
             <el-icon class="action-icon"><Calendar /></el-icon>
@@ -210,7 +221,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { User, Folder, Calendar, Refresh, Timer, Setting } from '@element-plus/icons-vue'
+import { User, Folder, Calendar, Refresh, Timer, Setting, Download } from '@element-plus/icons-vue'
 import WorkModeCard from '@/components/WorkModeCard.vue'
 import { teamApi } from '@/api/team'
 import { projectApi } from '@/api/project'

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import users, work_logs, reminders, templates, team, project, tasks, messages, ws, project_management
+from app.api.v1.endpoints import users, work_logs, reminders, templates, team, project, tasks, messages, ws, project_management, download
 
 api_router = APIRouter()
 
@@ -12,4 +12,5 @@ api_router.include_router(project.router, prefix="/projects", tags=["projects"])
 api_router.include_router(project_management.router, prefix="/project-management", tags=["project-management"])
 api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 api_router.include_router(messages.router, prefix="/messages", tags=["messages"])
-api_router.include_router(ws.router, tags=["websocket"]) 
+api_router.include_router(ws.router, tags=["websocket"])
+api_router.include_router(download.router, prefix="/downloads", tags=["downloads"]) 
