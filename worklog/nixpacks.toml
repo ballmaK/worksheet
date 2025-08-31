@@ -2,13 +2,13 @@
 nixPkgs = ["python39", "mysql", "redis"]
 
 [phases.install]
-cmds = ["pip install -r requirements-railway.txt"]
+cmds = ["pip install -r requirements.txt"]
 
 [phases.build]
 cmds = ["echo 'Build completed'"]
 
 [start]
-cmd = "python start_with_debug.py"
+cmd = "python start_railway.py"
 
 [variables]
 PYTHON_VERSION = "3.9"
