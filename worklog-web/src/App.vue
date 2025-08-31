@@ -32,11 +32,10 @@
       <!-- 操作提示横幅 -->
       <OperationTips />
       
-      <el-header class="app-header" height="60px">
-        <div class="header-left">
-          <el-icon class="logo-icon"><Monitor /></el-icon>
-          <h1 class="app-title">WorkLog Pro</h1>
-        </div>
+             <el-header class="app-header" height="60px">
+         <div class="header-left">
+           <Logo size="medium" :show-text="true" :clickable="true" @click="$router.push('/')" />
+         </div>
         <div class="header-right">
           <!-- WebSocket状态指示器 - 只在用户登录时显示 -->
           <WebSocketStatus
@@ -143,6 +142,7 @@ import FloatingTaskBar from '@/components/FloatingTaskBar.vue'
 import WebSocketStatus from '@/components/WebSocketStatus.vue'
 import NotificationToast from '@/components/NotificationToast.vue'
 import OperationTips from '@/components/OperationTips.vue'
+import Logo from '@/components/Logo.vue'
 // 移除头部的工作模式切换组件导入
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useNotification } from '@/composables/useNotification'

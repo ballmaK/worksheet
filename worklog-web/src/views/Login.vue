@@ -2,8 +2,7 @@
   <div class="login-container">
     <div class="login-box">
       <div class="login-header">
-        <el-icon class="logo-icon"><Monitor /></el-icon>
-        <h2>WorkLog Pro</h2>
+        <Logo size="large" :show-text="true" />
       </div>
       <el-form
         ref="formRef"
@@ -47,10 +46,11 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Lock, Monitor } from '@element-plus/icons-vue'
+import { User, Lock } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import { userApi } from '@/api/user'
 import { useUserStore } from '@/stores/user'
+import Logo from '@/components/Logo.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
