@@ -1,7 +1,14 @@
 <template>
   <div class="logo-container" :class="[`logo-${size}`, { 'logo-clickable': clickable }]" @click="handleClick">
     <img 
-      src="@/assets/worklog-logo.jpg" 
+      v-if="size === 'large'" 
+      src="@/assets/logo-large.svg" 
+      alt="WorkLog Pro" 
+      class="logo-image"
+    />
+    <img 
+      v-else 
+      src="@/assets/logo.svg" 
       alt="WorkLog Pro" 
       class="logo-image"
     />
