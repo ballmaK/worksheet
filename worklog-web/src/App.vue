@@ -228,12 +228,7 @@ onMounted(async () => {
     }
   })
   
-  // 测试通知功能
-  setTimeout(() => {
-    if (userStore.isLoggedIn) {
-      showTaskNotification('测试通知', '这是一条测试任务通知')
-    }
-  }, 3000)
+
   
   if (token) {
     try {
