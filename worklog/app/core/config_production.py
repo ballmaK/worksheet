@@ -51,9 +51,9 @@ class ProductionSettings(BaseSettings):
     REDIS_DB: int = safe_int(os.getenv("REDIS_DB"), 0)
     
     # 邮件配置
-    SMTP_TLS: bool = os.getenv("SMTP_TLS", "true").lower() == "true"  # Gmail使用TLS
-    SMTP_PORT: int = safe_int(os.getenv("SMTP_PORT"), 587)  # Gmail TLS端口
-    SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")  # Gmail SMTP服务器
+    SMTP_TLS: bool = os.getenv("SMTP_TLS", "false").lower() == "true"  # 163邮箱使用SSL，不需要TLS
+    SMTP_PORT: int = safe_int(os.getenv("SMTP_PORT"), 465)  # 163邮箱SSL端口
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.163.com")  # 163邮箱SMTP服务器
     SMTP_USER: str = os.getenv("SMTP_USER", "未配置邮箱用户")
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "未配置邮箱密码")
     EMAILS_FROM_EMAIL: str = os.getenv("EMAILS_FROM_EMAIL", "未配置发件人邮箱")

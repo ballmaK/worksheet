@@ -48,21 +48,21 @@ def check_email_config():
         print("请在 Railway 平台设置相应的环境变量")
         return False
     
-    # Gmail特定配置检查
-    if email_vars['SMTP_HOST'] == 'smtp.gmail.com':
-        print("\n🔍 Gmail配置检查:")
+    # 163邮箱特定配置检查
+    if email_vars['SMTP_HOST'] == 'smtp.163.com':
+        print("\n🔍 163邮箱配置检查:")
         
         # 检查端口
-        if email_vars['SMTP_PORT'] and email_vars['SMTP_PORT'] != '587':
-            print(f"  ⚠️  Gmail推荐使用端口587，当前端口: {email_vars['SMTP_PORT']}")
+        if email_vars['SMTP_PORT'] and email_vars['SMTP_PORT'] != '465':
+            print(f"  ⚠️  163邮箱推荐使用端口465，当前端口: {email_vars['SMTP_PORT']}")
         
         # 检查TLS设置
-        if email_vars['SMTP_TLS'] and email_vars['SMTP_TLS'].lower() != 'true':
-            print("  ⚠️  Gmail必须启用TLS (SMTP_TLS=true)")
+        if email_vars['SMTP_TLS'] and email_vars['SMTP_TLS'].lower() == 'true':
+            print("  ⚠️  163邮箱SSL端口465不需要启用TLS (SMTP_TLS=false)")
         
         # 检查邮箱格式
-        if email_vars['SMTP_USER'] and not email_vars['SMTP_USER'].endswith('@gmail.com'):
-            print("  ⚠️  Gmail邮箱地址格式不正确")
+        if email_vars['SMTP_USER'] and not email_vars['SMTP_USER'].endswith('@163.com'):
+            print("  ⚠️  163邮箱地址格式不正确")
     
     print("\n✅ 邮件配置完整")
     return True

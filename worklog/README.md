@@ -110,13 +110,13 @@ REDIS_PASSWORD=
 REDIS_DB=0
 
 # 邮件配置
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=ballmai1ly@gmail.com
-SMTP_PASSWORD=your_app_password
-EMAILS_FROM_EMAIL=ballmai1ly@gmail.com
+SMTP_HOST=smtp.163.com
+SMTP_PORT=465
+SMTP_USER=zkzk-11@163.com
+SMTP_PASSWORD=your_authorization_code
+EMAILS_FROM_EMAIL=zkzk-11@163.com
 EMAILS_FROM_NAME=WorkLog Pro
-SMTP_TLS=true
+SMTP_TLS=false
 
 ### 生产环境邮件配置
 
@@ -127,35 +127,35 @@ SMTP_TLS=true
 在 Railway 平台的项目设置中添加以下环境变量：
 
 ```bash
-# 邮件配置 - Gmail
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=ballmai1ly@gmail.com
-SMTP_PASSWORD=your_app_password
-EMAILS_FROM_EMAIL=ballmai1ly@gmail.com
+# 邮件配置 - 163邮箱
+SMTP_HOST=smtp.163.com
+SMTP_PORT=465
+SMTP_USER=zkzk-11@163.com
+SMTP_PASSWORD=your_authorization_code
+EMAILS_FROM_EMAIL=zkzk-11@163.com
 EMAILS_FROM_NAME=WorkLog Pro
-SMTP_TLS=true
+SMTP_TLS=false
 ```
 
 #### 环境变量说明
 
-- `SMTP_HOST`: SMTP服务器地址（Gmail使用 smtp.gmail.com）
-- `SMTP_PORT`: SMTP端口（Gmail TLS端口为587）
-- `SMTP_USER`: 您的Gmail邮箱地址（ballmai1ly@gmail.com）
-- `SMTP_PASSWORD`: Gmail的应用专用密码（不是登录密码）
-- `EMAILS_FROM_EMAIL`: 发件人邮箱地址（ballmai1ly@gmail.com）
+- `SMTP_HOST`: SMTP服务器地址（163邮箱使用 smtp.163.com）
+- `SMTP_PORT`: SMTP端口（163邮箱SSL端口为465）
+- `SMTP_USER`: 您的163邮箱地址（zkzk-11@163.com）
+- `SMTP_PASSWORD`: 163邮箱的授权码（不是登录密码）
+- `EMAILS_FROM_EMAIL`: 发件人邮箱地址（zkzk-11@163.com）
 - `EMAILS_FROM_NAME`: 发件人显示名称
-- `SMTP_TLS`: 是否启用TLS（Gmail必须设置为true）
+- `SMTP_TLS`: 是否启用TLS（163邮箱SSL端口465设置为false）
 
-#### 获取Gmail应用专用密码
+#### 获取163邮箱授权码
 
-1. 登录Google账户
-2. 进入"安全性" → "2步验证"
-3. 开启"2步验证"（如果未开启）
-4. 在"应用专用密码"中生成新的密码
-5. 将生成的16位应用专用密码填入 `SMTP_PASSWORD` 环境变量
+1. 登录163邮箱
+2. 进入"设置" → "POP3/SMTP/IMAP"
+3. 开启"POP3/SMTP服务"
+4. 获取授权码（16位字符）
+5. 将授权码填入 `SMTP_PASSWORD` 环境变量
 
-**注意**: Gmail要求使用应用专用密码，不能使用账户密码或2步验证码。
+**注意**: 163邮箱需要使用授权码，不能使用登录密码。
 
 #### 配置验证
 
