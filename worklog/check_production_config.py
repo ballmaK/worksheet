@@ -47,9 +47,25 @@ def check_email_config():
         print(f"\n⚠️  缺少必需的邮件配置: {', '.join(missing_vars)}")
         print("请在 Railway 平台设置相应的环境变量")
         return False
-    else:
-        print("\n✅ 邮件配置完整")
-        return True
+    
+    # Gmail特定配置检查
+    if email_vars['SMTP_HOST'] == 'smtp.gmail.com':
+        print("\n🔍 Gmail配置检查:")
+        
+        # 检查端口
+        if email_vars['SMTP_PORT'] and email_vars['SMTP_PORT'] != '587':
+            print(f"  ⚠️  Gmail推荐使用端口587，当前端口: {email_vars['SMTP_PORT']}")
+        
+        # 检查TLS设置
+        if email_vars['SMTP_TLS'] and email_vars['SMTP_TLS'].lower() != 'true':
+            print("  ⚠️  Gmail必须启用TLS (SMTP_TLS=true)")
+        
+        # 检查邮箱格式
+        if email_vars['SMTP_USER'] and not email_vars['SMTP_USER'].endswith('@gmail.com'):
+            print("  ⚠️  Gmail邮箱地址格式不正确")
+    
+    print("\n✅ 邮件配置完整")
+    return True
 
 def check_database_config():
     """检查数据库配置"""
