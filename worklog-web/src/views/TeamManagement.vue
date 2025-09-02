@@ -55,6 +55,11 @@
       <el-tab-pane label="团队统计" name="statistics">
         <TeamStatistics :team-id="teamId" />
       </el-tab-pane>
+
+      <!-- 加入申请标签页 -->
+      <el-tab-pane label="加入申请" name="join-requests" v-if="isAdmin">
+        <TeamJoinRequests :team-id="teamId" />
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -71,6 +76,7 @@ import TeamMembers from '@/components/team/TeamMembers.vue'
 import TeamProjects from '@/components/team/TeamProjects.vue'
 import TeamActivities from '@/components/team/TeamActivities.vue'
 import TeamStatistics from '@/components/team/TeamStatistics.vue'
+import TeamJoinRequests from '@/components/team/TeamJoinRequests.vue'
 
 const route = useRoute()
 const router = useRouter()

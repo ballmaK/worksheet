@@ -7,6 +7,7 @@ from app.models.task_log import TaskLog, TaskStatusChange
 from app.models.work_log import WorkLog
 from app.models.message import Message, MessageTemplate
 from app.models.team_invite import TeamInvite
+from app.models.team_join_request import TeamJoinRequest
 
 __all__ = [
     "User",
@@ -22,5 +23,6 @@ __all__ = [
     "WorkLog",
     "Message",
     "MessageTemplate",
-    "TeamInvite"
+    "TeamInvite",
+    "TeamJoinRequest"
 ] 

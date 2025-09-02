@@ -12,6 +12,10 @@
           <el-icon><Plus /></el-icon>
           创建团队
         </el-button>
+        <el-button type="success" @click="handleJoinTeam">
+          <el-icon><UserFilled /></el-icon>
+          加入团队
+        </el-button>
       </div>
     </div>
 
@@ -312,7 +316,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { Plus, Search, MoreFilled, List, Grid } from '@element-plus/icons-vue'
+import { Plus, Search, MoreFilled, List, Grid, UserFilled } from '@element-plus/icons-vue'
 import { teamApi } from '@/api/team'
 import { teamMemberApi } from '@/api/team-member'
 import { projectApi } from '@/api/project'
@@ -505,6 +509,12 @@ const handleCreateTeam = () => {
   }
   showCreateDialog.value = true
   console.log('对话框状态:', showCreateDialog.value)
+}
+
+// 加入团队
+const handleJoinTeam = () => {
+  console.log('加入团队按钮被点击')
+  router.push('/join-teams')
 }
 
 // 提交创建团队

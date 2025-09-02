@@ -2,7 +2,13 @@
   <div class="team-list">
     <div class="header">
       <h2>我的团队</h2>
-      <el-button type="primary" @click="showCreateDialog">创建团队</el-button>
+      <div class="header-actions">
+        <el-button type="primary" @click="showCreateDialog">创建团队</el-button>
+        <el-button type="success" @click="handleJoinTeam">
+          <el-icon><UserFilled /></el-icon>
+          加入团队
+        </el-button>
+      </div>
     </div>
 
     <div class="team-cards" v-loading="loading">
@@ -65,7 +71,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { teamApi, type Team, type CreateTeamData } from '@/api/team'
 import { useRouter } from 'vue-router'
-import { User, Calendar } from '@element-plus/icons-vue'
+import { User, Calendar, UserFilled } from '@element-plus/icons-vue'
 
 const teams = ref<Team[]>([])
 const loading = ref(false)
@@ -113,6 +119,12 @@ const showCreateDialog = () => {
   form.name = ''
   form.description = ''
   dialogVisible.value = true
+}
+
+// 加入团队
+const handleJoinTeam = () => {
+  console.log('加入团队按钮被点击')
+  router.push('/join-teams')
 }
 
 // 显示编辑对话框
@@ -187,6 +199,12 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .header h2 {

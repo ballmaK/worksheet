@@ -59,6 +59,27 @@ export interface TeamStatistics {
   task_count: number
 }
 
+export interface TeamSearchResult {
+  id: number
+  name: string
+  description?: string
+  created_at: string
+  member_count: number
+  project_count: number
+  is_public: boolean
+}
+
+export interface TeamJoinRequest {
+  id: number
+  user_id: number
+  username: string
+  email: string
+  message: string
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
+  updated_at: string
+}
+
 export const teamApi = {
   // 获取团队列表
   getTeams() {
@@ -174,6 +195,52 @@ export const teamApi = {
     return requestApi<TeamStatistics>({
       url: `/teams/${teamId}/statistics`,
       method: 'get'
+    })
+  },
+
+  // 搜索公开团队
+  searchPublicTeams(params?: {
+    keyword?: string
+    page?: number
+    size?: number
+  }) {
+    return requestApi<TeamSearchResult[]>({
+      url: '/teams/search/public',
+      method: 'get',
+      params
+    })
+  },
+
+  // 申请加入团队
+  joinTeam(teamId: number, data: { message?: string }) {
+    return requestApi<{ message: string; application_id?: number }>({
+      url: `/teams/${teamId}/join`,
+      method: 'post',
+      data
+    })
+  },
+
+  // 获取团队加入申请列表
+  getTeamJoinRequests(teamId: number) {
+    return requestApi<TeamJoinRequest[]>({
+      url: `/teams/${teamId}/join-requests`,
+      method: 'get'
+    })
+  },
+
+  // 批准加入申请
+  approveJoinRequest(teamId: number, requestId: number) {
+    return requestApi<{ message: string }>({
+      url: `/teams/${teamId}/join-requests/${requestId}/approve`,
+      method: 'put'
+    })
+  },
+
+  // 拒绝加入申请
+  rejectJoinRequest(teamId: number, requestId: number) {
+    return requestApi<{ message: string }>({
+      url: `/teams/${teamId}/join-requests/${requestId}/reject`,
+      method: 'put'
     })
   }
 } 

@@ -39,6 +39,7 @@ class Team(Base):
     worklogs = relationship("WorkLog", back_populates="team", cascade="all, delete-orphan")
     invites = relationship("TeamInvite", back_populates="team", cascade="all, delete-orphan")
     tasks = relationship("Task", back_populates="team", cascade="all, delete-orphan")
+    join_requests = relationship("TeamJoinRequest", back_populates="team", cascade="all, delete-orphan")
     
 
 

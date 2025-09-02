@@ -49,6 +49,7 @@ class User(Base):
     reminders = relationship("Reminder", back_populates="user")
     # templates = relationship("WorkLogTemplate", back_populates="user")  # 暂时注释掉
     sent_invites = relationship("TeamInvite", back_populates="inviter", cascade="all, delete-orphan")
+    team_join_requests = relationship("TeamJoinRequest", back_populates="user", cascade="all, delete-orphan")
     
     # 任务相关关系
     assigned_tasks = relationship("Task", foreign_keys="Task.assignee_id", back_populates="assignee")

@@ -27,6 +27,11 @@
         <template #title>团队管理</template>
       </el-menu-item>
 
+      <el-menu-item index="/join-teams">
+        <el-icon><Plus /></el-icon>
+        <template #title>加入团队</template>
+      </el-menu-item>
+
       <el-menu-item index="/worklogs">
         <el-icon><Document /></el-icon>
         <template #title>工作日志</template>
@@ -68,7 +73,8 @@ import {
   Setting,
   Expand,
   Fold,
-  Monitor
+  Monitor,
+  Plus
 } from '@element-plus/icons-vue'
 
 const route = useRoute()

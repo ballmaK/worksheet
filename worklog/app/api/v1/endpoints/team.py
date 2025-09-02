@@ -83,6 +83,25 @@ class VerifyInvitationResponse(BaseModel):
     user_created: bool = False
     team_member_id: int = None
 
+# 搜索团队的响应模型
+class TeamSearchResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    created_at: datetime
+    member_count: int
+    project_count: int
+    is_public: bool = True  # 默认所有团队都是公开的
+
+# 申请加入团队的请求模型
+class JoinTeamRequest(BaseModel):
+    message: Optional[str] = None  # 申请留言
+
+# 申请加入团队的响应模型
+class JoinTeamResponse(BaseModel):
+    message: str
+    application_id: Optional[int] = None
+
 router = APIRouter()
 
 # 团队管理接口
@@ -1401,4 +1420,297 @@ def get_team_statistics(
         "project_count": project_count,
         "worklog_count": worklog_count,
         "task_count": task_count
-    } 
+    }
+
+@router.get("/search/public", response_model=List[TeamSearchResponse])
+def search_public_teams(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    keyword: Optional[str] = None,
+    page: int = 1,
+    size: int = 20
+) -> Any:
+    """
+    搜索公开的团队（模糊搜索）
+    """
+    # 计算偏移量
+    skip = (page - 1) * size
+    
+    # 基础查询：获取所有团队
+    query = db.query(Team)
+    
+    # 应用关键词搜索
+    if keyword:
+        query = query.filter(
+            Team.name.contains(keyword) | Team.description.contains(keyword)
+        )
+    
+    # 获取总数
+    total = query.count()
+    
+    # 分页查询
+    teams = query.order_by(desc(Team.created_at)).offset(skip).limit(size).all()
+    
+    # 构建响应数据
+    result = []
+    for team in teams:
+        # 统计成员数量
+        member_count = db.query(TeamMember).filter(
+            TeamMember.team_id == team.id
+        ).count()
+        
+        # 统计项目数量
+        project_count = db.query(Project).filter(
+            Project.team_id == team.id
+        ).count()
+        
+        # 检查当前用户是否已经是团队成员
+        is_member = db.query(TeamMember).filter(
+            TeamMember.team_id == team.id,
+            TeamMember.user_id == current_user.id
+        ).first() is not None
+        
+        # 如果用户已经是团队成员，跳过
+        if is_member:
+            continue
+            
+        result.append(TeamSearchResponse(
+            id=team.id,
+            name=team.name,
+            description=team.description,
+            created_at=team.created_at,
+            member_count=member_count,
+            project_count=project_count,
+            is_public=True
+        ))
+    
+    return result
+
+@router.post("/{team_id}/join", response_model=JoinTeamResponse)
+def join_team(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    team_id: int,
+    join_request: JoinTeamRequest
+) -> Any:
+    """
+    申请加入团队
+    """
+    # 检查团队是否存在
+    team = db.query(Team).filter(Team.id == team_id).first()
+    if not team:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="团队不存在"
+        )
+    
+    # 检查用户是否已经是团队成员
+    existing_member = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.user_id == current_user.id
+    ).first()
+    
+    if existing_member:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="您已经是该团队的成员"
+        )
+    
+    # 检查是否已经有待处理的申请
+    from app.models.team_join_request import TeamJoinRequest
+    existing_request = db.query(TeamJoinRequest).filter(
+        TeamJoinRequest.team_id == team_id,
+        TeamJoinRequest.user_id == current_user.id,
+        TeamJoinRequest.status == "pending"
+    ).first()
+    
+    if existing_request:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="您已经提交过加入申请，请等待管理员审核"
+        )
+    
+    # 创建加入申请
+    join_request_obj = TeamJoinRequest(
+        team_id=team_id,
+        user_id=current_user.id,
+        message=join_request.message,
+        status="pending",
+        created_at=datetime.utcnow()
+    )
+    
+    db.add(join_request_obj)
+    db.commit()
+    db.refresh(join_request_obj)
+    
+    # 发送通知给团队管理员
+    team_admins = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.role == TEAM_ADMIN
+    ).all()
+    
+    for admin in team_admins:
+        # 这里可以发送邮件通知管理员
+        # 暂时只记录日志
+        print(f"用户 {current_user.username} 申请加入团队 {team.name}，管理员 {admin.user_id} 需要审核")
+    
+    return JoinTeamResponse(
+        message="申请已提交，请等待管理员审核",
+        application_id=join_request_obj.id
+    )
+
+@router.get("/{team_id}/join-requests", response_model=List[dict])
+def get_team_join_requests(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    team_id: int
+) -> Any:
+    """
+    获取团队的加入申请列表（仅团队管理员可访问）
+    """
+    # 检查用户是否是团队管理员
+    member = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.user_id == current_user.id
+    ).first()
+    
+    if not member or member.role != TEAM_ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="只有团队管理员可以查看加入申请"
+        )
+    
+    # 获取所有加入申请
+    from app.models.team_join_request import TeamJoinRequest
+    join_requests = db.query(TeamJoinRequest).filter(
+        TeamJoinRequest.team_id == team_id
+    ).all()
+    
+    # 构建响应数据
+    result = []
+    for request in join_requests:
+        user = db.query(User).filter(User.id == request.user_id).first()
+        result.append({
+            "id": request.id,
+            "user_id": request.user_id,
+            "username": user.username if user else "未知用户",
+            "email": user.email if user else "未知邮箱",
+            "message": request.message,
+            "status": request.status,
+            "created_at": request.created_at,
+            "updated_at": request.updated_at
+        })
+    
+    return result
+
+@router.put("/{team_id}/join-requests/{request_id}/approve")
+def approve_join_request(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    team_id: int,
+    request_id: int
+) -> Any:
+    """
+    批准加入申请（仅团队管理员可操作）
+    """
+    # 检查用户是否是团队管理员
+    member = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.user_id == current_user.id
+    ).first()
+    
+    if not member or member.role != TEAM_ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="只有团队管理员可以批准加入申请"
+        )
+    
+    # 获取加入申请
+    from app.models.team_join_request import TeamJoinRequest
+    join_request = db.query(TeamJoinRequest).filter(
+        TeamJoinRequest.id == request_id,
+        TeamJoinRequest.team_id == team_id
+    ).first()
+    
+    if not join_request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="加入申请不存在"
+        )
+    
+    if join_request.status != "pending":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="该申请已经被处理"
+        )
+    
+    # 批准申请
+    join_request.status = "approved"
+    join_request.updated_at = datetime.utcnow()
+    
+    # 将用户添加为团队成员
+    new_member = TeamMember(
+        team_id=team_id,
+        user_id=join_request.user_id,
+        role=TEAM_MEMBER,
+        joined_at=datetime.utcnow()
+    )
+    
+    db.add(new_member)
+    db.commit()
+    
+    return {"message": "申请已批准，用户已加入团队"}
+
+@router.put("/{team_id}/join-requests/{request_id}/reject")
+def reject_join_request(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    team_id: int,
+    request_id: int
+) -> Any:
+    """
+    拒绝加入申请（仅团队管理员可操作）
+    """
+    # 检查用户是否是团队管理员
+    member = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.user_id == current_user.id
+    ).first()
+    
+    if not member or member.role != TEAM_ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="只有团队管理员可以拒绝加入申请"
+        )
+    
+    # 获取加入申请
+    from app.models.team_join_request import TeamJoinRequest
+    join_request = db.query(TeamJoinRequest).filter(
+        TeamJoinRequest.id == request_id,
+        TeamJoinRequest.team_id == team_id
+    ).first()
+    
+    if not join_request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="加入申请不存在"
+        )
+    
+    if join_request.status != "pending":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="该申请已经被处理"
+        )
+    
+    # 拒绝申请
+    join_request.status = "rejected"
+    join_request.updated_at = datetime.utcnow()
+    
+    db.commit()
+    
+    return {"message": "申请已拒绝"}
