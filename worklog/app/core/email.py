@@ -32,6 +32,31 @@ async def send_email(
     """
     发送邮件
     """
+    # 首先打印详细的邮件配置信息（在连接之前）
+    logger.info("📧 邮件配置详情:")
+    logger.info(f"  SMTP_HOST: {settings.SMTP_HOST}")
+    logger.info(f"  SMTP_PORT: {settings.SMTP_PORT}")
+    logger.info(f"  SMTP_USER: {settings.SMTP_USER}")
+    logger.info(f"  SMTP_PASSWORD: {'*' * len(settings.SMTP_PASSWORD) if settings.SMTP_PASSWORD else 'None'}")
+    logger.info(f"  EMAILS_FROM_EMAIL: {settings.EMAILS_FROM_EMAIL}")
+    logger.info(f"  EMAILS_FROM_NAME: {settings.EMAILS_FROM_NAME}")
+    logger.info(f"  SMTP_TLS: {settings.SMTP_TLS}")
+    logger.info(f"  MAIL_STARTTLS: {settings.SMTP_TLS}")
+    logger.info(f"  MAIL_SSL_TLS: {not settings.SMTP_TLS}")
+    
+    # 打印ConnectionConfig的详细信息
+    logger.info("🔧 FastAPI-Mail ConnectionConfig:")
+    logger.info(f"  MAIL_USERNAME: {conf.MAIL_USERNAME}")
+    logger.info(f"  MAIL_PASSWORD: {'*' * len(conf.MAIL_PASSWORD) if conf.MAIL_PASSWORD else 'None'}")
+    logger.info(f"  MAIL_FROM: {conf.MAIL_FROM}")
+    logger.info(f"  MAIL_PORT: {conf.MAIL_PORT}")
+    logger.info(f"  MAIL_SERVER: {conf.MAIL_SERVER}")
+    logger.info(f"  MAIL_FROM_NAME: {conf.MAIL_FROM_NAME}")
+    logger.info(f"  MAIL_STARTTLS: {conf.MAIL_STARTTLS}")
+    logger.info(f"  MAIL_SSL_TLS: {conf.MAIL_SSL_TLS}")
+    logger.info(f"  USE_CREDENTIALS: {conf.USE_CREDENTIALS}")
+    logger.info(f"  VALIDATE_CERTS: {conf.VALIDATE_CERTS}")
+    
     try:
         logger.info(f"开始发送邮件到: {email_to}")
         logger.info(f"邮件主题: {subject}")
@@ -93,18 +118,19 @@ async def send_invitation_email(email_to: str, team_name: str, inviter_name: str
     """
     发送团队邀请邮件
     """
-    project_name = settings.PROJECT_NAME
-    subject = f"邀请加入{team_name}团队"
-    invite_link = f"{settings.FRONTEND_URL}/register?token={token}"
-    
-    # 添加调试信息
-    logger.info(f"📧 准备发送团队邀请邮件:")
+    # 首先打印邮件配置信息（在发送之前）
+    logger.info("📧 准备发送团队邀请邮件:")
     logger.info(f"  收件人: {email_to}")
     logger.info(f"  团队名称: {team_name}")
     logger.info(f"  邀请人: {inviter_name}")
     logger.info(f"  团队ID: {team_id}")
-    logger.info(f"  邀请链接: {invite_link}")
     logger.info(f"  前端URL: {settings.FRONTEND_URL}")
+    
+    project_name = settings.PROJECT_NAME
+    subject = f"邀请加入{team_name}团队"
+    invite_link = f"{settings.FRONTEND_URL}/register?token={token}"
+    
+    logger.info(f"  邀请链接: {invite_link}")
     
     print(f"邀请链接: {invite_link}")
     html = f"""
