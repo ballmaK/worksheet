@@ -114,13 +114,64 @@ SMTP_HOST=smtp.163.com
 SMTP_PORT=465
 SMTP_USER=your_email@163.com
 SMTP_PASSWORD=your_authorization_code
+EMAILS_FROM_EMAIL=your_email@163.com
+EMAILS_FROM_NAME=WorkLog Pro
+SMTP_TLS=false
+
+### 生产环境邮件配置
+
+**重要**: 生产环境必须通过环境变量配置邮件信息，不能使用硬编码的默认值。
+
+#### Railway 平台配置
+
+在 Railway 平台的项目设置中添加以下环境变量：
+
+```bash
+# 邮件配置
+SMTP_HOST=smtp.163.com
+SMTP_PORT=465
+SMTP_USER=your_actual_email@163.com
+SMTP_PASSWORD=your_actual_authorization_code
+EMAILS_FROM_EMAIL=your_actual_email@163.com
+EMAILS_FROM_NAME=WorkLog Pro
+SMTP_TLS=false
 ```
 
-### 邮件服务配置
+#### 环境变量说明
 
-1. 注册163邮箱或其他支持SMTP的邮箱
-2. 开启SMTP服务并获取授权码
-3. 在配置文件中填入邮箱信息
+- `SMTP_HOST`: SMTP服务器地址（163邮箱使用 smtp.163.com）
+- `SMTP_PORT`: SMTP端口（163邮箱SSL端口为465）
+- `SMTP_USER`: 您的163邮箱地址
+- `SMTP_PASSWORD`: 163邮箱的授权码（不是登录密码）
+- `EMAILS_FROM_EMAIL`: 发件人邮箱地址
+- `EMAILS_FROM_NAME`: 发件人显示名称
+- `SMTP_TLS`: 是否启用TLS（163邮箱SSL端口465设置为false）
+
+#### 获取163邮箱授权码
+
+1. 登录163邮箱
+2. 进入"设置" → "POP3/SMTP/IMAP"
+3. 开启"POP3/SMTP服务"
+4. 获取授权码（16位字符）
+5. 将授权码填入 `SMTP_PASSWORD` 环境变量
+
+#### 配置验证
+
+部署后，应用启动时会显示邮件配置信息，请检查：
+
+```
+📧 生产环境邮件配置:
+  SMTP_HOST: smtp.163.com
+  SMTP_PORT: 465
+  SMTP_USER: your_actual_email@163.com
+  SMTP_PASSWORD: ****************
+  EMAILS_FROM_EMAIL: your_actual_email@163.com
+  EMAILS_FROM_NAME: WorkLog Pro
+  SMTP_TLS: false
+```
+
+如果看到"未配置邮箱用户"等警告信息，说明环境变量未正确设置。
+```
 
 ## 🧪 测试
 

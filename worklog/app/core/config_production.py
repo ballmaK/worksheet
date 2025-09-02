@@ -54,10 +54,30 @@ class ProductionSettings(BaseSettings):
     SMTP_TLS: bool = os.getenv("SMTP_TLS", "false").lower() == "true"
     SMTP_PORT: int = safe_int(os.getenv("SMTP_PORT"), 465)
     SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.163.com")
-    SMTP_USER: str = os.getenv("SMTP_USER", "")
-    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
-    EMAILS_FROM_EMAIL: str = os.getenv("EMAILS_FROM_EMAIL", "")
+    SMTP_USER: str = os.getenv("SMTP_USER", "未配置邮箱用户")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "未配置邮箱密码")
+    EMAILS_FROM_EMAIL: str = os.getenv("EMAILS_FROM_EMAIL", "未配置发件人邮箱")
     EMAILS_FROM_NAME: str = os.getenv("EMAILS_FROM_NAME", "WorkLog Pro")
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # 打印邮件配置信息（隐藏敏感信息）
+        print(f"📧 生产环境邮件配置:")
+        print(f"  SMTP_HOST: {self.SMTP_HOST}")
+        print(f"  SMTP_PORT: {self.SMTP_PORT}")
+        print(f"  SMTP_USER: {self.SMTP_USER}")
+        print(f"  SMTP_PASSWORD: {'*' * len(self.SMTP_PASSWORD) if self.SMTP_PASSWORD else '未设置'}")
+        print(f"  EMAILS_FROM_EMAIL: {self.EMAILS_FROM_EMAIL}")
+        print(f"  EMAILS_FROM_NAME: {self.EMAILS_FROM_NAME}")
+        print(f"  SMTP_TLS: {self.SMTP_TLS}")
+        
+        # 检查关键配置
+        if not self.SMTP_USER or self.SMTP_USER == "未配置邮箱用户":
+            print("⚠️  警告: SMTP_USER 未正确配置")
+        if not self.SMTP_PASSWORD or self.SMTP_PASSWORD == "未配置邮箱密码":
+            print("⚠️  警告: SMTP_PASSWORD 未正确配置")
+        if not self.EMAILS_FROM_EMAIL or self.EMAILS_FROM_EMAIL == "未配置发件人邮箱":
+            print("⚠️  警告: EMAILS_FROM_EMAIL 未正确配置")
     
     # 钉钉配置
     DINGTALK_APP_KEY: Optional[str] = os.getenv("DINGTALK_APP_KEY")
