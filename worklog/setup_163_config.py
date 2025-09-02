@@ -11,6 +11,14 @@ import ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import socket
+import asyncio
+
+from fastapi_mail import FastMail, ConnectionConfig, MessageSchema
+from dotenv import load_dotenv
+
+load_dotenv()
+
+FASTAPI_MAIL_AVAILABLE = os.getenv("FASTAPI_MAIL_AVAILABLE", "false").lower() == "true"
 
 def print_section(title):
     """打印分隔标题"""
@@ -100,6 +108,67 @@ def send_test_email(smtp_host, smtp_port, smtp_user, smtp_password, test_email):
         print(f"❌ 邮件发送失败: {e}")
         return False
 
+async def send_test_email_fastapi(smtp_host, smtp_port, smtp_user, smtp_password, test_email):
+    """使用fastapi-mail发送测试邮件"""
+    print_section("📤 FastAPI-Mail测试邮件发送")
+    
+    if not FASTAPI_MAIL_AVAILABLE:
+        print("❌ fastapi-mail不可用，跳过FastAPI测试")
+        return False
+    
+    try:
+        # 创建fastapi-mail配置
+        conf = ConnectionConfig(
+            MAIL_USERNAME=smtp_user,
+            MAIL_PASSWORD=smtp_password,
+            MAIL_FROM=smtp_user,
+            MAIL_PORT=smtp_port,
+            MAIL_SERVER=smtp_host,
+            MAIL_FROM_NAME="WorkLog Pro",
+            MAIL_STARTTLS=False,  # 163邮箱使用SSL，不需要TLS
+            MAIL_SSL_TLS=True,    # 163邮箱使用SSL
+            USE_CREDENTIALS=True,
+            VALIDATE_CERTS=True
+        )
+        
+        # 创建邮件消息
+        message = MessageSchema(
+            subject="WorkLog Pro - FastAPI-Mail测试邮件",
+            recipients=[test_email],
+            body="",
+            html=f"""
+            <html>
+            <body>
+            <h2>FastAPI-Mail测试邮件发送成功！</h2>
+            <p>如果您收到这封邮件，说明FastAPI的邮件发送功能正常。</p>
+            <p>发送时间: {__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            <p>发件人: {smtp_user}</p>
+            <p>邮件服务器: {smtp_host}:{smtp_port}</p>
+            <p>此致，</p>
+            <p>WorkLog Pro 团队</p>
+            </body>
+            </html>
+            """,
+            subtype="html"
+        )
+        
+        # 发送邮件
+        print(f"🔄 尝试使用FastAPI-Mail发送测试邮件到 {test_email}...")
+        print(f"邮件服务器配置: {smtp_host}:{smtp_port}")
+        
+        fm = FastMail(conf)
+        await fm.send_message(message)
+        
+        print("✅ FastAPI-Mail测试邮件发送成功！")
+        print(f"请检查邮箱 {test_email} 是否收到测试邮件")
+        return True
+        
+    except Exception as e:
+        print(f"❌ FastAPI-Mail邮件发送失败: {e}")
+        print(f"错误类型: {type(e).__name__}")
+        print(f"错误详情: {str(e)}")
+        return False
+
 def setup_163_config():
     """设置163邮箱配置"""
     print_section("📧 163邮箱配置设置")
@@ -155,6 +224,27 @@ def setup_163_config():
         if not send_test_email('smtp.163.com', 465, email, auth_code, test_email):
             print("❌ 测试邮件发送失败")
             return False
+        
+        # 如果fastapi-mail可用，询问是否也测试FastAPI-Mail
+        if FASTAPI_MAIL_AVAILABLE:
+            print("\n选择测试方式:")
+            print("1. 原生SMTP测试 (已完成)")
+            print("2. FastAPI-Mail测试")
+            print("3. 两种方式都测试")
+            
+            test_choice = input("请选择 (1/2/3): ").strip()
+            
+            if test_choice in ['2', '3']:
+                print("\n🔄 开始FastAPI-Mail测试...")
+                try:
+                    # 运行异步函数
+                    result = asyncio.run(send_test_email_fastapi('smtp.163.com', 465, email, auth_code, test_email))
+                    if not result:
+                        print("❌ FastAPI-Mail测试邮件发送失败")
+                        return False
+                except Exception as e:
+                    print(f"❌ FastAPI-Mail测试失败: {e}")
+                    return False
     
     print_section("📋 Railway环境变量配置")
     print("请在Railway平台的项目设置中添加以下环境变量:")
