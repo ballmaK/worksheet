@@ -8,6 +8,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Monitor } from '@element-plus/icons-vue'
 
 interface Props {
