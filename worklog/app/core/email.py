@@ -96,6 +96,16 @@ async def send_invitation_email(email_to: str, team_name: str, inviter_name: str
     project_name = settings.PROJECT_NAME
     subject = f"邀请加入{team_name}团队"
     invite_link = f"{settings.FRONTEND_URL}/register?token={token}"
+    
+    # 添加调试信息
+    logger.info(f"📧 准备发送团队邀请邮件:")
+    logger.info(f"  收件人: {email_to}")
+    logger.info(f"  团队名称: {team_name}")
+    logger.info(f"  邀请人: {inviter_name}")
+    logger.info(f"  团队ID: {team_id}")
+    logger.info(f"  邀请链接: {invite_link}")
+    logger.info(f"  前端URL: {settings.FRONTEND_URL}")
+    
     print(f"邀请链接: {invite_link}")
     html = f"""
     <p>您好，</p>
