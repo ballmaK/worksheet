@@ -1,5 +1,5 @@
 from typing import Any, List, Dict, Optional, Union
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Query
 from sqlalchemy.orm import Session
 from datetime import datetime, date, timedelta
 from sqlalchemy import desc
@@ -189,19 +189,12 @@ def create_team(
             
             print(f"响应数据构建完成: {team_data}")
             
-            # 记录团队创建活动
-            try:
-                crud_team_activity.create_activity_log(
-                    db=db,
-                    team_id=team.id,
-                    user_id=current_user.id,
-                    activity_type="team_created",
-                    title=f"创建了团队：{team.name}",
-                    content=f"创建了新团队 {team.name}",
-                    metadata={"team_name": team.name, "team_description": team.description}
-                )
-            except Exception as e:
-                print(f"记录团队创建活动失败: {str(e)}")
+            # 记录团队创建活动（暂时注释掉，因为不需要专门的活动记录）
+            # try:
+            #     # 这里可以记录团队创建活动到日志或数据库
+            #     print(f"团队 {team.name} 创建成功")
+            # except Exception as e:
+            #     print(f"记录团队创建活动失败: {str(e)}")
             
             return TeamResponse(**team_data)
             
@@ -452,20 +445,12 @@ def add_team_member(
         print(f"发送团队成员加入通知失败: {e}")
         # 不影响成员加入流程，只记录错误
     
-    # 记录成员加入活动
-    try:
-        user = db.query(User).filter(User.id == member.user_id).first()
-        crud_team_activity.create_activity_log(
-            db=db,
-            team_id=team_id,
-            user_id=current_user.id,
-            activity_type="member_joined",
-            title=f"新成员加入：{user.username if user else '未知用户'}",
-            content=f"用户 {user.username if user else '未知用户'} 加入了团队",
-            metadata={"joined_user_id": member.user_id, "joined_user_name": user.username if user else "未知用户", "role": member.role}
-        )
-    except Exception as e:
-        print(f"记录成员加入活动失败: {str(e)}")
+    # 记录成员加入活动（暂时注释掉，因为不需要专门的活动记录）
+    # try:
+    #     user = db.query(User).filter(User.id == member.user_id).first()
+    #     print(f"用户 {user.username if user else '未知用户'} 加入团队成功")
+    # except Exception as e:
+    #     print(f"记录成员加入活动失败: {str(e)}")
     
     return team_member
 
@@ -531,19 +516,11 @@ def update_member_role(
     db.commit()
     db.refresh(member)
     
-    # 记录角色变更活动
-    try:
-        crud_team_activity.create_activity_log(
-            db=db,
-            team_id=team_id,
-            user_id=current_user.id,
-            activity_type="role_changed",
-            title=f"角色变更：{user.username if user else '未知用户'}",
-            content=f"将 {user.username if user else '未知用户'} 的角色从 {old_role} 变更为 {role_update.role}",
-            metadata={"target_user_id": member.user_id, "target_user_name": user.username if user else "未知用户", "old_role": old_role, "new_role": role_update.role}
-        )
-    except Exception as e:
-        print(f"记录角色变更活动失败: {str(e)}")
+    # 记录角色变更活动（暂时注释掉，因为不需要专门的活动记录）
+    # try:
+    #     print(f"用户 {user.username if user else '未知用户'} 角色从 {old_role} 变更为 {role_update.role}")
+    # except Exception as e:
+    #     print(f"记录角色变更活动失败: {str(e)}")
     
     return member
 
@@ -1714,3 +1691,129 @@ def reject_join_request(
     db.commit()
     
     return {"message": "申请已拒绝"}
+
+@router.get("/{team_id}/activities")
+def get_team_activities(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    team_id: int,
+    skip: int = Query(0, ge=0, description="偏移量"),
+    limit: int = Query(50, ge=1, le=100, description="返回数量"),
+    activity_type: Optional[str] = Query(None, description="活动类型"),
+    start_date: Optional[str] = Query(None, description="开始日期"),
+    end_date: Optional[str] = Query(None, description="结束日期")
+) -> Any:
+    """
+    获取团队活动列表（基于现有数据聚合）
+    """
+    # 检查团队是否存在
+    team = db.query(Team).filter(Team.id == team_id).first()
+    if not team:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="团队不存在"
+        )
+    
+    # 检查用户是否是团队成员
+    member = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.user_id == current_user.id
+    ).first()
+    
+    if not member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="您不是该团队成员"
+        )
+    
+    activities = []
+    
+    # 获取团队成员加入活动
+    team_members = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id
+    ).order_by(desc(TeamMember.joined_at)).offset(skip).limit(limit).all()
+    
+    for member in team_members:
+        user = db.query(User).filter(User.id == member.user_id).first()
+        if user:
+            activities.append({
+                "id": f"member_{member.id}",
+                "team_id": team_id,
+                "user_id": member.user_id,
+                "activity_type": "member_joined",
+                "title": f"新成员加入：{user.username}",
+                "content": f"用户 {user.username} 加入了团队",
+                "metadata": {
+                    "joined_user_id": member.user_id,
+                    "joined_user_name": user.username,
+                    "role": member.role
+                },
+                "created_at": member.joined_at,
+                "user": {
+                    "id": user.id,
+                    "username": user.username
+                }
+            })
+    
+    # 获取团队项目创建活动
+    projects = db.query(Project).filter(
+        Project.team_id == team_id
+    ).order_by(desc(Project.created_at)).offset(skip).limit(limit).all()
+    
+    for project in projects:
+        creator = db.query(User).filter(User.id == project.creator_id).first()
+        if creator:
+            activities.append({
+                "id": f"project_{project.id}",
+                "team_id": team_id,
+                "user_id": project.creator_id,
+                "activity_type": "project_created",
+                "title": f"创建了新项目：{project.name}",
+                "content": f"项目描述：{project.description or '无描述'}",
+                "metadata": {
+                    "project_id": project.id,
+                    "project_name": project.name,
+                    "project_status": project.status
+                },
+                "created_at": project.created_at,
+                "user": {
+                    "id": creator.id,
+                    "username": creator.username
+                }
+            })
+    
+    # 获取工作日志活动
+    work_logs = db.query(WorkLog).filter(
+        WorkLog.team_id == team_id
+    ).order_by(desc(WorkLog.created_at)).offset(skip).limit(limit).all()
+    
+    for work_log in work_logs:
+        user = db.query(User).filter(User.id == work_log.user_id).first()
+        if user:
+            activities.append({
+                "id": f"worklog_{work_log.id}",
+                "team_id": team_id,
+                "user_id": work_log.user_id,
+                "activity_type": "work_log_submitted",
+                "title": f"{user.username} 提交了工作日志",
+                "content": work_log.content[:100] + "..." if len(work_log.content) > 100 else work_log.content,
+                "metadata": {
+                    "worklog_id": work_log.id,
+                    "work_type": work_log.work_type,
+                    "duration": work_log.duration
+                },
+                "created_at": work_log.created_at,
+                "user": {
+                    "id": user.id,
+                    "username": user.username
+                }
+            })
+    
+    # 按时间倒序排列
+    activities.sort(key=lambda x: x["created_at"], reverse=True)
+    
+    # 应用分页
+    paginated_activities = activities[skip:skip + limit]
+    
+    return paginated_activities
