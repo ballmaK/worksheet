@@ -98,8 +98,13 @@
         </div>
 
         <!-- 负责人 -->
-        <div :class="[styles['info-item'], { [styles['disabled']]: !isFieldEditable('assignee_id') }]">
-          <div :class="styles['info-label']">负责人</div>
+        <div :class="[styles['info-item'], { [styles['disabled']]: !isFieldEditable('assignee_id') }]" data-field="assignee_id">
+          <div :class="styles['info-label']">
+            负责人
+            <el-tag v-if="showAssigneeRequired" type="warning" size="small" style="margin-left: 8px;">
+              请选择负责人
+            </el-tag>
+          </div>
           <div :class="styles['info-content']">
             <div :class="styles['tag-selector']">
               <el-tag
@@ -316,6 +321,100 @@
             </div>
           </div>
         </div>
+
+        <!-- 实际工时录入（仅在完成任务时显示） -->
+        <div v-if="showActualHoursInput" :class="styles['info-item']">
+          <div :class="styles['info-label']">实际工时</div>
+          <div :class="styles['info-content']">
+            <!-- 起始时间显示 -->
+            <div :class="styles['start-time-display']">
+              <div :class="styles['start-time-label']">起始时间</div>
+              <div :class="styles['time-display']">
+                <el-icon :class="styles['time-icon']"><Clock /></el-icon>
+                <span v-if="!isEditingStartTime" :class="styles['time-text']">{{ formatTaskStartTime(getTaskStartTime()) }}</span>
+                <el-date-picker
+                  v-if="isEditingStartTime"
+                  v-model="editableStartTime"
+                  type="datetime"
+                  placeholder="选择起始时间"
+                  size="small"
+                  :class="styles['start-time-picker']"
+                  format="YYYY-MM-DD HH:mm"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                  @change="updateStartTime"
+                />
+                <el-button
+                  v-if="!isEditingStartTime"
+                  type="primary"
+                  size="small"
+                  :class="styles['edit-button']"
+                  @click="startEditingStartTime"
+                >
+                  <el-icon><Edit /></el-icon>
+                  编辑
+                </el-button>
+                <div v-if="isEditingStartTime" :class="styles['edit-actions']">
+                  <el-button type="primary" size="small" @click="saveStartTime">保存</el-button>
+                  <el-button size="small" @click="cancelEditingStartTime">取消</el-button>
+                </div>
+              </div>
+            </div>
+            
+            <div :class="styles['hours-selector']">
+              <div :class="styles['time-range-selector']">
+                <div :class="styles['range-slider']">
+                  <div :class="styles['slider-container']">
+                    <el-slider
+                      v-model="workLogForm.timeRange"
+                      range
+                      :min="0"
+                      :max="Math.max(timeScale.length - 1, 1)"
+                      :step="1"
+                      :class="styles['range-slider']"
+                      :show-tooltip="false"
+                      :show-input="false"
+                      :show-stops="false"
+                      @change="updateActualHours"
+                      v-if="timeScale.length > 0"
+                    />
+                    <!-- 游标时间显示 -->
+                    <div :class="styles['cursor-times']">
+                      <div :class="styles['cursor-time-start']" :style="getStartCursorStyle()">
+                        <div :class="styles['cursor-time-label']">
+                          {{ getStartTimeLabel() }}
+                        </div>
+                      </div>
+                      <div :class="styles['cursor-time-end']" :style="getEndCursorStyle()">
+                        <div :class="styles['cursor-time-label']">
+                          {{ getEndTimeLabel() }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div :class="styles['time-scale']">
+                    <div v-for="(timePoint, index) in getDisplayTimeScale()" :key="index" :class="styles['scale-item']">
+                      <span :class="styles['scale-label']">{{ timePoint.label }}</span>
+                      <span :class="styles['scale-date']">{{ timePoint.date }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 工作内容输入 -->
+            <div :class="styles['work-content-section']">
+              <el-input
+                v-model="workLogForm.workContent"
+                type="textarea"
+                :rows="2"
+                placeholder="工作内容描述（可选）"
+                maxlength="500"
+                show-word-limit
+                size="small"
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -323,10 +422,20 @@
       <div :class="styles['drawer-footer']">
         <el-button @click="close">取消</el-button>
         <el-button
-            v-if="task"
+            v-if="task && currentTaskStatus === TaskStatus.COMPLETED"
+            type="success"
+            @click="completeTaskWithWorkLog"
+            :loading="submitting"
+            :disabled="workLogForm.actualHours <= 0"
+        >
+          完成任务
+        </el-button>
+        <el-button
+            v-else-if="task"
             type="primary"
             @click="submit"
             :loading="submitting"
+            :disabled="showAssigneeRequired"
         >
           更新任务
         </el-button>
@@ -344,7 +453,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Document,
@@ -380,6 +489,7 @@ interface Props {
   teams?: Team[]
   projects?: Project[]
   teamMembers?: any[]
+  targetStatus?: string // 拖拽时的目标状态
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -387,7 +497,8 @@ const props = withDefaults(defineProps<Props>(), {
   task: null,
   teams: () => [],
   projects: () => [],
-  teamMembers: () => []
+  teamMembers: () => [],
+  targetStatus: undefined
 })
 
 // Emits
@@ -404,6 +515,22 @@ const taskFormRef = ref()
 const teamProjects = ref<Project[]>([])
 const localTeamMembers = ref<any[]>([])
 
+// 工作日志表单
+const workLogForm = ref({
+  timeRange: [0, 16] as [number, number], // [开始时间索引, 结束时间索引]
+  startDateTime: '',
+  endDateTime: '',
+  actualHours: 8,
+  workContent: ''
+})
+
+// 时间刻度（30分钟间隔，3天范围）
+const timeScale = ref<Array<{label: string, date: string, datetime: Date}>>([])
+
+// 起始时间编辑状态
+const isEditingStartTime = ref(false)
+const editableStartTime = ref('')
+
 // 任务表单
 const taskForm = ref({
   title: '',
@@ -416,7 +543,8 @@ const taskForm = ref({
   task_type: 'feature' as string,
   estimated_hours: undefined as number | undefined,
   due_date: null as Date | null,
-  tags: ''
+  tags: '',
+  started_at: '' as string
 })
 
 // 任务类型配置
@@ -538,6 +666,10 @@ watch(visible, (newValue) => {
 
 watch(() => props.visible, (newValue) => {
   visible.value = newValue
+  if (newValue && props.task) {
+    // 重置工时表单
+    resetWorkLogForm()
+  }
 })
 
 // 监听task变化，填充表单
@@ -676,8 +808,48 @@ const selectProject = async (project: Project) => {
 }
 
 const selectAssignee = async (member: any) => {
-  if (await confirmSensitiveOperation('重新分配负责人')) {
+  // 如果当前没有负责人，直接分配
+  if (!taskForm.value.assignee_id) {
     taskForm.value.assignee_id = member.user_id
+  } else {
+    // 如果已有负责人，需要确认重新分配
+    if (await confirmSensitiveOperation('重新分配负责人')) {
+      taskForm.value.assignee_id = member.user_id
+    }
+  }
+}
+
+// 重置工时表单
+const resetWorkLogForm = () => {
+  workLogForm.value = {
+    timeRange: [0, 16],
+    startDateTime: '',
+    endDateTime: '',
+    actualHours: 8,
+    workContent: ''
+  }
+}
+
+// 完成任务并创建工作日志
+const completeTaskWithWorkLog = async () => {
+  if (!props.task || workLogForm.value.actualHours <= 0) {
+    ElMessage.warning('请先录入实际工时')
+    return
+  }
+  
+  try {
+    submitting.value = true
+    await taskApi.completeTask(
+      props.task.id,
+      workLogForm.value.actualHours,
+      workLogForm.value.workContent || undefined
+    )
+    ElMessage.success('任务完成成功')
+    emit('submit')
+  } catch (error: any) {
+    ElMessage.error('完成任务失败：' + (error.response?.data?.detail || '未知错误'))
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -816,6 +988,74 @@ const currentTaskStatus = computed(() => {
   return taskForm.value.status as TaskStatus
 })
 
+// 计算是否显示实际工时录入界面
+const showActualHoursInput = computed(() => {
+  // 当任务状态为已完成时显示实际工时录入界面
+  return currentTaskStatus.value === TaskStatus.COMPLETED && props.task
+})
+
+// 计算是否显示负责人完善界面
+const showAssigneeRequired = computed(() => {
+  // 当任务状态为已分配或进行中，但没有负责人时显示负责人完善界面
+  return (currentTaskStatus.value === TaskStatus.ASSIGNED || currentTaskStatus.value === TaskStatus.IN_PROGRESS) 
+    && props.task 
+    && !taskForm.value.assignee_id
+})
+
+// 监听任务状态变化，安全地初始化工作日志表单
+watch(() => currentTaskStatus.value, (newStatus) => {
+  if (newStatus === TaskStatus.COMPLETED && props.task) {
+    // 使用nextTick确保DOM更新完成后再初始化
+    nextTick(() => {
+      setTimeout(() => {
+        initializeWorkLogForm()
+      }, 100)
+    })
+  }
+})
+
+// 监听targetStatus变化，设置任务状态为目标状态
+watch(() => props.targetStatus, (targetStatus) => {
+  if (targetStatus && props.task) {
+    taskForm.value.status = targetStatus as TaskStatus
+    
+    // 如果目标状态是已完成，立即初始化工作日志表单
+    if (targetStatus === TaskStatus.COMPLETED) {
+      nextTick(() => {
+        setTimeout(() => {
+          initializeWorkLogForm()
+          // 滚动到最下方，显示工时录入区域
+          scrollToBottom()
+        }, 100)
+      })
+    }
+    // 如果目标状态是需要负责人的状态，滚动到负责人选择区域
+    else if (targetStatus === TaskStatus.ASSIGNED || targetStatus === TaskStatus.IN_PROGRESS) {
+      nextTick(() => {
+        setTimeout(() => {
+          // 滚动到负责人选择区域
+          scrollToAssigneeSection()
+        }, 100)
+      })
+    }
+  }
+}, { immediate: true })
+
+// 移除复杂的watch监听，改为在模板中直接处理
+// watch(currentTaskStatus, (newStatus, oldStatus) => {
+//   if (newStatus === TaskStatus.COMPLETED && oldStatus !== TaskStatus.COMPLETED && props.task) {
+//     setTimeout(() => {
+//       try {
+//         initializeWorkLogForm()
+//       } catch (error) {
+//         console.error('初始化工时表单失败:', error)
+//         workLogForm.value.actualHours = props.task?.estimated_hours || 8
+//         workLogForm.value.workContent = `完成任务：${props.task?.title || ''}`
+//       }
+//     }, 500)
+//   }
+// })
+
 // 检查字段是否可编辑
 const isFieldEditable = (fieldName: string) => {
   const permission = fieldEditPermissions[fieldName as keyof typeof fieldEditPermissions]
@@ -935,6 +1175,365 @@ const changeStatus = async (newStatus: TaskStatus) => {
   }
 }
 
+// 生成时间刻度（根据实际时间跨度，30分钟精度）
+const generateTimeScale = (startDate: Date, endDate: Date) => {
+  const scale: Array<{label: string, date: string, datetime: Date}> = []
+  
+  let current = new Date(startDate)
+  current.setMinutes(Math.floor(current.getMinutes() / 30) * 30, 0, 0) // 对齐到30分钟
+  
+  // 确保结束时间也对齐到30分钟，并确保包含当前时间
+  const alignedEndDate = new Date(endDate)
+  alignedEndDate.setMinutes(Math.ceil(endDate.getMinutes() / 30) * 30, 0, 0)
+  
+  // 获取当前时间并对齐到30分钟
+  const now = new Date()
+  const alignedNow = new Date(now)
+  alignedNow.setMinutes(Math.ceil(now.getMinutes() / 30) * 30, 0, 0)
+  
+  // 如果当前时间晚于对齐的结束时间，更新结束时间
+  if (alignedNow > alignedEndDate) {
+    alignedEndDate.setTime(alignedNow.getTime())
+  }
+  
+  while (current <= alignedEndDate && scale.length < 200) { // 限制最大长度，保持30分钟精度
+    const timeStr = current.toLocaleTimeString('zh-CN', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    })
+    const dateStr = current.toLocaleDateString('zh-CN', { 
+      month: '2-digit', 
+      day: '2-digit' 
+    })
+    
+    scale.push({
+      label: timeStr,
+      date: dateStr,
+      datetime: new Date(current)
+    })
+    
+    current.setMinutes(current.getMinutes() + 30)
+  }
+  
+  return scale
+}
+
+// 获取要显示的时间轴刻度（根据实际跨度动态计算4个刻度）
+const getDisplayTimeScale = () => {
+  if (timeScale.value.length === 0) return []
+  
+  const totalPoints = timeScale.value.length
+  
+  // 如果刻度点少于等于4个，直接返回所有点
+  if (totalPoints <= 4) {
+    return timeScale.value
+  }
+  
+  // 计算4个均匀分布的时间点，确保包含最后一个点
+  const displayPoints = []
+  
+  // 总是包含第一个点
+  displayPoints.push(timeScale.value[0])
+  
+  // 计算中间2个点
+  const step = (totalPoints - 1) / 3 // 分成3段，4个点
+  for (let i = 1; i < 3; i++) {
+    const index = Math.round(i * step)
+    displayPoints.push(timeScale.value[index])
+  }
+  
+  // 总是包含最后一个点
+  displayPoints.push(timeScale.value[totalPoints - 1])
+  
+  return displayPoints
+}
+
+// 更新时间范围（从滑块）
+const updateActualHours = (value: [number, number]) => {
+  const maxIndex = Math.max(timeScale.value.length - 1, 1)
+  const safeValue: [number, number] = [
+    Math.max(0, Math.min(value[0], maxIndex)),
+    Math.max(0, Math.min(value[1], maxIndex))
+  ]
+  
+  workLogForm.value.timeRange = safeValue
+  const startTime = timeScale.value[safeValue[0]]
+  const endTime = timeScale.value[safeValue[1]]
+  
+  if (startTime && endTime) {
+    workLogForm.value.startDateTime = startTime.datetime.toISOString().slice(0, 19).replace('T', ' ')
+    workLogForm.value.endDateTime = endTime.datetime.toISOString().slice(0, 19).replace('T', ' ')
+    
+    // 计算实际工时
+    const diffMs = endTime.datetime.getTime() - startTime.datetime.getTime()
+    workLogForm.value.actualHours = diffMs / (1000 * 60 * 60)
+  }
+}
+
+// 更新时间范围（从日期时间选择器）
+const updateTimeRangeFromDateTime = () => {
+  if (!workLogForm.value.startDateTime || !workLogForm.value.endDateTime) return
+  
+  const startDate = new Date(workLogForm.value.startDateTime)
+  const endDate = new Date(workLogForm.value.endDateTime)
+  
+  // 找到最接近的时间刻度索引
+  const startIndex = timeScale.value.findIndex(point => 
+    Math.abs(point.datetime.getTime() - startDate.getTime()) < 15 * 60 * 1000 // 15分钟内
+  )
+  const endIndex = timeScale.value.findIndex(point => 
+    Math.abs(point.datetime.getTime() - endDate.getTime()) < 15 * 60 * 1000 // 15分钟内
+  )
+  
+  if (startIndex >= 0 && endIndex >= 0 && startIndex < endIndex) {
+    workLogForm.value.timeRange = [startIndex, endIndex]
+    
+    // 计算实际工时
+    const diffMs = endDate.getTime() - startDate.getTime()
+    workLogForm.value.actualHours = diffMs / (1000 * 60 * 60)
+  }
+}
+
+// 获取开始时间标签
+const getStartTimeLabel = () => {
+  if (timeScale.value.length === 0) {
+    // 如果没有时间刻度，使用任务开始时间作为默认值
+    if (props.task?.started_at) {
+      const taskStart = new Date(props.task.started_at)
+      const timeStr = taskStart.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      })
+      const dateStr = taskStart.toLocaleDateString('zh-CN', { 
+        month: '2-digit', 
+        day: '2-digit' 
+      })
+      return `${timeStr}\n${dateStr}`
+    }
+    return '09:00\n12/25'
+  }
+  const startIndex = workLogForm.value.timeRange[0]
+  const timePoint = timeScale.value[startIndex]
+  if (timePoint) {
+    return `${timePoint.label}\n${timePoint.date}`
+  }
+  return '09:00\n12/25'
+}
+
+// 获取结束时间标签
+const getEndTimeLabel = () => {
+  if (timeScale.value.length === 0) {
+    // 如果没有时间刻度，使用当前时间作为默认值
+    const now = new Date()
+    const timeStr = now.toLocaleTimeString('zh-CN', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    })
+    const dateStr = now.toLocaleDateString('zh-CN', { 
+      month: '2-digit', 
+      day: '2-digit' 
+    })
+    return `${timeStr}\n${dateStr}`
+  }
+  const endIndex = workLogForm.value.timeRange[1]
+  const timePoint = timeScale.value[endIndex]
+  if (timePoint) {
+    return `${timePoint.label}\n${timePoint.date}`
+  }
+  return '17:00\n12/25'
+}
+
+// 计算开始游标位置样式
+const getStartCursorStyle = () => {
+  if (timeScale.value.length === 0) return { left: '0%' }
+  const maxIndex = Math.max(timeScale.value.length - 1, 1)
+  const percentage = (workLogForm.value.timeRange[0] / maxIndex) * 100
+  return { left: `${percentage}%` }
+}
+
+// 计算结束游标位置样式
+const getEndCursorStyle = () => {
+  if (timeScale.value.length === 0) return { left: '100%' }
+  const maxIndex = Math.max(timeScale.value.length - 1, 1)
+  const percentage = (workLogForm.value.timeRange[1] / maxIndex) * 100
+  return { left: `${percentage}%` }
+}
+
+// 初始化工作日志表单
+const initializeWorkLogForm = () => {
+  if (!props.task) return
+  
+  const estimatedHours = props.task.estimated_hours || 8
+  workLogForm.value.actualHours = estimatedHours
+  workLogForm.value.workContent = `完成任务：${props.task.title}`
+  
+  // 使用任务的开始时间作为时间轴起始点，当前时间作为结束点
+  const taskStartTime = getTaskStartTime()
+  const taskStartDate = taskStartTime ? new Date(taskStartTime) : new Date()
+  const now = new Date()
+  
+  // 结束时间总是当前时间，确保时间轴包含到当前时间
+  const endDate = now
+  
+  console.log('初始化工作日志表单:', {
+    taskStartTime,
+    taskStartDate: taskStartDate.toISOString(),
+    endDate: endDate.toISOString(),
+    now: now.toISOString()
+  })
+  
+  timeScale.value = generateTimeScale(taskStartDate, endDate)
+  
+  console.log('生成的时间轴:', {
+    length: timeScale.value.length,
+    first: timeScale.value[0]?.datetime.toISOString(),
+    last: timeScale.value[timeScale.value.length - 1]?.datetime.toISOString()
+  })
+  
+  // 设置默认时间范围（从起始时间到当前时间）
+  const startTime = getTaskStartTime()
+  const startDate = startTime ? new Date(startTime) : new Date()
+  
+  // 找到最接近当前时间的刻度索引
+  let endIndex = timeScale.value.length - 1
+  let closestIndex = 0
+  let minDiff = Infinity
+  
+  for (let i = 0; i < timeScale.value.length; i++) {
+    const timePoint = timeScale.value[i]
+    const diff = Math.abs(timePoint.datetime.getTime() - now.getTime())
+    
+    if (diff < minDiff) {
+      minDiff = diff
+      closestIndex = i
+    }
+    
+    // 如果当前时间点不晚于当前时间，也记录这个索引
+    if (timePoint.datetime.getTime() <= now.getTime()) {
+      endIndex = i
+    }
+  }
+  
+  // 使用最接近当前时间的索引，但不超过当前时间
+  endIndex = Math.min(closestIndex, endIndex)
+  
+  workLogForm.value.timeRange = [0, endIndex]
+  
+  // 设置默认日期时间
+  if (timeScale.value.length > 0) {
+    workLogForm.value.startDateTime = timeScale.value[0].datetime.toISOString().slice(0, 19).replace('T', ' ')
+    workLogForm.value.endDateTime = timeScale.value[endIndex].datetime.toISOString().slice(0, 19).replace('T', ' ')
+  }
+}
+
+// 获取任务起始时间（优先使用taskForm.started_at，否则使用props.task的数据）
+const getTaskStartTime = () => {
+  if (!props.task) return ''
+  
+  // 优先使用taskForm中的started_at（用户编辑后的值）
+  if (taskForm.value.started_at) {
+    return taskForm.value.started_at
+  }
+  
+  // 否则使用props.task中的started_at或created_at
+  const startTime = props.task.started_at || props.task.created_at
+  return startTime || ''
+}
+
+// 开始编辑起始时间
+const startEditingStartTime = () => {
+  const currentStartTime = getTaskStartTime()
+  editableStartTime.value = currentStartTime
+  isEditingStartTime.value = true
+}
+
+// 取消编辑起始时间
+const cancelEditingStartTime = () => {
+  isEditingStartTime.value = false
+  editableStartTime.value = ''
+}
+
+// 保存起始时间
+const saveStartTime = () => {
+  if (editableStartTime.value) {
+    // 更新任务表单中的started_at字段
+    taskForm.value.started_at = editableStartTime.value
+    
+    // 重新生成时间轴（使用实际时间跨度）
+    const taskStartDate = new Date(editableStartTime.value)
+    const now = new Date()
+    
+    // 结束时间总是当前时间，确保时间轴包含到当前时间
+    const endDate = now
+    
+    timeScale.value = generateTimeScale(taskStartDate, endDate)
+    
+    // 重置时间范围（从新的起始时间到当前时间）
+    let endIndex = timeScale.value.length - 1
+    let closestIndex = 0
+    let minDiff = Infinity
+    
+    for (let i = 0; i < timeScale.value.length; i++) {
+      const timePoint = timeScale.value[i]
+      const diff = Math.abs(timePoint.datetime.getTime() - now.getTime())
+      
+      if (diff < minDiff) {
+        minDiff = diff
+        closestIndex = i
+      }
+      
+      // 如果当前时间点不晚于当前时间，也记录这个索引
+      if (timePoint.datetime.getTime() <= now.getTime()) {
+        endIndex = i
+      }
+    }
+    
+    // 使用最接近当前时间的索引，但不超过当前时间
+    endIndex = Math.min(closestIndex, endIndex)
+    
+    workLogForm.value.timeRange = [0, endIndex]
+    
+    // 更新默认日期时间
+    if (timeScale.value.length > 0) {
+      workLogForm.value.startDateTime = timeScale.value[0].datetime.toISOString().slice(0, 19).replace('T', ' ')
+      workLogForm.value.endDateTime = timeScale.value[endIndex].datetime.toISOString().slice(0, 19).replace('T', ' ')
+    }
+    
+    isEditingStartTime.value = false
+    ElMessage.success('起始时间已更新')
+  }
+}
+
+// 更新起始时间（实时更新）
+const updateStartTime = () => {
+  if (editableStartTime.value) {
+    // 实时更新任务表单
+    taskForm.value.started_at = editableStartTime.value
+  }
+}
+
+// 格式化任务起始时间
+const formatTaskStartTime = (startedAt: string) => {
+  if (!startedAt) return '未设置'
+  
+  const date = new Date(startedAt)
+  const timeStr = date.toLocaleTimeString('zh-CN', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: false 
+  })
+  const dateStr = date.toLocaleDateString('zh-CN', { 
+    year: 'numeric',
+    month: '2-digit', 
+    day: '2-digit' 
+  })
+  
+  return `${dateStr} ${timeStr}`
+}
+
 // 状态提示功能
 const getStatusHintTitle = () => {
   const currentStatus = currentTaskStatus.value
@@ -970,5 +1569,27 @@ const getStatusHintType = () => {
     [TaskStatus.CANCELLED]: 'danger'
   }
   return types[currentStatus] || 'info'
+}
+
+// 滚动到抽屉底部
+const scrollToBottom = () => {
+  nextTick(() => {
+    // 查找抽屉的滚动容器
+    const drawer = document.querySelector('.el-drawer__body')
+    if (drawer) {
+      drawer.scrollTop = drawer.scrollHeight
+    }
+  })
+}
+
+// 滚动到负责人选择区域
+const scrollToAssigneeSection = () => {
+  nextTick(() => {
+    // 查找负责人选择区域
+    const assigneeSection = document.querySelector('[data-field="assignee_id"]')
+    if (assigneeSection) {
+      assigneeSection.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  })
 }
 </script> 

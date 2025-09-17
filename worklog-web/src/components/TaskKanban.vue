@@ -296,7 +296,28 @@ const handleDrop = (event: DragEvent, status: string) => {
   event.preventDefault()
   const taskId = event.dataTransfer?.getData('text/plain')
   if (taskId) {
-    emit('workflow-action', `update-status:${taskId}:${status}`)
+    const task = props.tasks.find(t => t.id === parseInt(taskId))
+    if (task) {
+      // 如果拖动到已完成状态，先弹出任务明细抽屉，在面板中显示已完成状态
+      if (status === 'completed') {
+        // 直接打开任务详情抽屉，传递目标状态
+        emit('view-task', task, status)
+      }
+      // 如果拖动到进行中或后续状态，需要先完善负责人信息
+      else if (status === 'in_progress' || status === 'assigned') {
+        // 检查是否已有负责人
+        if (!task.assignee_id) {
+          // 没有负责人，打开任务详情抽屉，传递目标状态
+          emit('view-task', task, status)
+        } else {
+          // 有负责人，直接更新状态
+          emit('workflow-action', `update-status:${taskId}:${status}`)
+        }
+      } else {
+        // 其他状态直接更新
+        emit('workflow-action', `update-status:${taskId}:${status}`)
+      }
+    }
   }
 }
 

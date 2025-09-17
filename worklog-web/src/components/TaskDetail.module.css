@@ -736,4 +736,211 @@
 
 .status-cancelled .info-item:not(.disabled) {
   border-left: 3px solid #ef4444;
+}
+
+/* 时间范围选择器样式 */
+.time-range-selector {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #bae6fd;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.1);
+}
+
+
+.range-slider {
+  margin-bottom: 16px;
+}
+
+.slider-container {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.range-slider :global(.el-slider) {
+  margin-bottom: 8px;
+}
+
+/* 隐藏滑块自带的数字显示 */
+.range-slider :global(.el-slider__button) {
+  width: 16px !important;
+  height: 16px !important;
+  border: 2px solid #409eff !important;
+  background-color: #fff !important;
+}
+
+.range-slider :global(.el-slider__button:hover) {
+  border-color: #66b1ff !important;
+}
+
+.range-slider :global(.el-slider__button:active) {
+  border-color: #3a8ee6 !important;
+}
+
+/* 隐藏滑块上的tooltip数字显示 */
+.range-slider :global(.el-tooltip__popper) {
+  display: none !important;
+}
+
+.range-slider :global(.el-tooltip__content) {
+  display: none !important;
+}
+
+.range-slider :global(.el-slider__runway) {
+  background-color: #e4e7ed;
+}
+
+.range-slider :global(.el-slider__bar) {
+  background-color: #409eff;
+}
+
+.cursor-times {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  right: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.cursor-time-start,
+.cursor-time-end {
+  position: absolute;
+  transform: translateX(-50%);
+  top: 0;
+}
+
+.cursor-time-label {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: pre-line;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  border: 1px solid #1e40af;
+  min-width: 50px;
+  line-height: 1.2;
+}
+
+.cursor-time-start .cursor-time-label {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  border: 1px solid #047857;
+}
+
+.cursor-time-end .cursor-time-label {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+  border: 1px solid #b45309;
+}
+
+.time-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 0 12px;
+}
+
+.scale-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+}
+
+.scale-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.scale-date {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+
+.hours-unit {
+  color: #64748b;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+
+/* 起始时间显示样式 */
+.start-time-display {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.start-time-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.time-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 8px;
+  border: 1px solid #bae6fd;
+}
+
+.time-icon {
+  color: #0ea5e9;
+  font-size: 16px;
+}
+
+.time-text {
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 600;
+  flex: 1;
+}
+
+.start-time-picker {
+  flex: 1;
+  margin-right: 8px;
+}
+
+.edit-button {
+  margin-left: auto;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* 工作内容输入区域样式 */
+.work-content-section {
+  margin-top: 16px;
+}
+
+.work-content-section :global(.el-textarea__inner) {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  resize: vertical;
+  transition: all 0.3s ease;
+}
+
+.work-content-section :global(.el-textarea__inner):focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+  background: white;
 } 

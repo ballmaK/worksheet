@@ -71,6 +71,7 @@
         :teams="teams"
         :projects="projects"
         :teamMembers="teamMembers"
+        :targetStatus="currentTargetStatus"
         @submit="handleSubmit"
         @close="closeTaskDetail"
     />
@@ -81,6 +82,13 @@
         :task="currentTask"
         :availableMembers="availableMembers"
         @assign="handleAssignTask"
+    />
+
+    <!-- 任务完成对话框 -->
+    <TaskCompleteDialog
+        v-model="showCompleteDialogVisible"
+        :task="currentCompleteTask"
+        @success="handleTaskCompleteSuccess"
     />
 
     <!-- 快速创建任务组件 -->
@@ -102,6 +110,7 @@ import TaskKanban from '@/components/TaskKanban.vue'
 import TaskDetail from '@/components/TaskDetail.vue'
 import AssignTaskDialog from '@/components/AssignTaskDialog.vue'
 import QuickCreateTask from '@/components/QuickCreateTask.vue'
+import TaskCompleteDialog from '@/components/TaskCompleteDialog.vue'
 import { teamApi } from '@/api/team'
 import { projectApi } from '@/api/project'
 import { taskApi } from '@/api/task'
@@ -120,6 +129,10 @@ const tasks = ref<Task[]>([])
 const teamMembers = ref<any[]>([])
 const availableMembers = ref<any[]>([])
 const loading = ref(false)
+
+// 对话框状态
+const showCompleteDialogVisible = ref(false)
+const currentCompleteTask = ref<Task | null>(null)
 const drawerVisible = ref(false)
 
 // 搜索和过滤
@@ -137,6 +150,7 @@ const quickCreateTaskRef = ref()
 const taskDetailVisible = ref(false)
 const isEditing = ref(false)
 const currentTask = ref<Task | null>(null)
+const currentTargetStatus = ref<string | undefined>(undefined)
 const showAssignDialogVisible = ref(false)
 
 // 双击空格键相关
@@ -450,9 +464,10 @@ const showCreateDialog = () => {
   taskDetailVisible.value = true
 }
 
-const viewTask = (task: Task) => {
+const viewTask = (task: Task, targetStatus?: string) => {
   isEditing.value = false
   currentTask.value = task
+  currentTargetStatus.value = targetStatus
   taskDetailVisible.value = true
 }
 
@@ -465,6 +480,7 @@ const editTask = (task: Task) => {
 const closeTaskDetail = () => {
   taskDetailVisible.value = false
   currentTask.value = null
+  currentTargetStatus.value = undefined
 }
 
 const handleSubmit = async () => {
@@ -488,8 +504,12 @@ const handleWorkflowAction = async (command: string) => {
         ElMessage.success('任务工作已开始')
         break
       case 'complete':
-        await taskApi.completeTask(taskIdNum)
-        ElMessage.success('任务已完成')
+        // 显示完成对话框让用户录入工时
+        const task = tasks.value.find(t => t.id === taskIdNum)
+        if (task) {
+          currentCompleteTask.value = task
+          showCompleteDialogVisible.value = true
+        }
         break
       case 'submit':
         await taskApi.submitTaskForReview(taskIdNum)
@@ -535,6 +555,11 @@ const handleAssignTask = async (assigneeId: number) => {
 const handleAssigneeChange = async (assigneeIds: number[]) => {
   selectedAssigneeIds.value = assigneeIds
   // 负责人筛选不需要重新获取数据，使用计算属性过滤即可
+}
+
+// 任务完成成功处理
+const handleTaskCompleteSuccess = async () => {
+  await refreshTasks()
 }
 
 const showFilterDrawer = () => {

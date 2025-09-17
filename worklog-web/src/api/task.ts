@@ -308,10 +308,22 @@ export const taskApi = {
   },
 
   // 完成任务
-  completeTask(taskId: number) {
+  completeTask(taskId: number, actualHours?: number, workContent?: string) {
+    const formData = new FormData()
+    if (actualHours !== undefined) {
+      formData.append('actual_hours', actualHours.toString())
+    }
+    if (workContent) {
+      formData.append('work_content', workContent)
+    }
+    
     return requestApi({
       url: `/tasks/${taskId}/complete`,
-      method: 'post'
+      method: 'post',
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
     })
   },
 

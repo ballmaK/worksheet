@@ -1654,6 +1654,8 @@ def complete_task(
     *,
     db: Session = Depends(get_db),
     task_id: int,
+    actual_hours: float = Form(None, description="实际工时（小时）"),
+    work_content: str = Form(None, description="工作内容描述"),
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """完成任务"""
@@ -1685,58 +1687,46 @@ def complete_task(
     task.status = TaskStatus.COMPLETED
     task.completed_at = func.now()
     
-    # 先提交以获取实际的时间值
+    # 设置实际工时
+    if actual_hours is not None and actual_hours > 0:
+        task.actual_hours = actual_hours
+    elif task.started_at is not None and task.completed_at is not None:
+        # 如果没有提供实际工时，则自动计算
+        duration = (task.completed_at - task.started_at).total_seconds() / 3600
+        task.actual_hours = duration
+    
     db.add(task)
     db.commit()
     db.refresh(task)
     
-    # 计算实际工时
-    if task.started_at is not None and task.completed_at is not None:
-        duration = (task.completed_at - task.started_at).total_seconds() / 3600
-        task.actual_hours = duration
-        db.add(task)
-        db.commit()
-        db.refresh(task)
-    
     # 记录完成工作日志
     try:
-        # 更新之前的工作日志
-        from app.models.work_log import WorkLog
+        from app.models.work_log import WorkLog, WorkLogType
         from datetime import datetime
         
-        # 查找该任务的最新工作日志
-        latest_work_log = db.query(WorkLog).filter(
-            WorkLog.task_id == task.id,
-            WorkLog.user_id == current_user.id
-        ).order_by(WorkLog.created_at.desc()).first()
+        # 创建工作日志内容
+        work_content_text = work_content or f"完成任务：{task.title}"
+        work_details = f"任务状态从「{old_status}」变更为「{task.status}」，实际工时：{task.actual_hours:.1f}小时"
         
-        if latest_work_log:
-            # 更新现有工作日志
-            latest_work_log.end_time = task.completed_at
-            latest_work_log.hours_spent = task.actual_hours
-            latest_work_log.progress_percentage = 100.0
-            latest_work_log.work_status = "completed"
-            latest_work_log.details = f"任务已完成，实际工时：{task.actual_hours:.1f}小时"
-            db.add(latest_work_log)
-        else:
-            # 创建新的完成日志
-            work_log = WorkLog(
-                user_id=current_user.id,
-                team_id=task.team_id,
-                project_id=task.project_id,
-                task_id=task.id,
-                work_type=WorkLogType.DEVELOPMENT,
-                description=f"完成任务：{task.title}",
-                details=f"任务状态从「{old_status}」变更为「{task.status}」，实际工时：{task.actual_hours:.1f}小时",
-                date=datetime.now(),
-                start_time=task.started_at or task.completed_at,
-                end_time=task.completed_at,
-                hours_spent=task.actual_hours,
-                progress_percentage=100.0,
-                work_status="completed"
-            )
-            db.add(work_log)
-        
+        # 创建新的完成日志
+        work_log = WorkLog(
+            user_id=current_user.id,
+            team_id=task.team_id,
+            project_id=task.project_id,
+            task_id=task.id,
+            work_type=WorkLogType.FEATURE,
+            content=work_content_text,
+            start_time=task.started_at or task.completed_at,
+            end_time=task.completed_at,
+            duration=task.actual_hours,
+            progress_percentage=100.0,
+            work_status="completed",
+            issues_encountered=None,
+            solutions_applied=None,
+            blockers=None,
+            remark=f"任务完成时自动创建的工作日志"
+        )
+        db.add(work_log)
         db.commit()
         
     except Exception as e:

@@ -292,6 +292,13 @@
       <!-- 拖拽手柄区域 -->
       <div class="drag-handle"></div>
     </div>
+
+    <!-- 任务完成对话框 -->
+    <TaskCompleteDialog
+      v-model="showCompleteDialogVisible"
+      :task="currentTask"
+      @success="handleTaskCompleteSuccess"
+    />
   </QuickCreateTask>
 </template>
 
@@ -306,6 +313,7 @@ import {
 import { taskApi, type Task } from '@/api/task'
 import { workLogApi } from '@/api/workLog'
 import QuickCreateTask from './QuickCreateTask.vue'
+import TaskCompleteDialog from './TaskCompleteDialog.vue'
 
 // 状态管理
 const isExpanded = ref(false)
@@ -318,6 +326,9 @@ const isSwitchingTask = ref(false)
 const currentTask = ref<Task | null>(null)
 const tasks = ref<Task[]>([])
 const loading = ref(false)
+
+// 完成对话框状态
+const showCompleteDialogVisible = ref(false)
 const workStartTime = ref<Date | null>(null)
 const dragStartPos = ref<{ x: number; y: number } | null>(null)
 const windowStartPos = ref<{ x: number; y: number } | null>(null)
@@ -1055,33 +1066,25 @@ const completeCurrentTask = async () => {
     return
   }
   
-  try {
-    // 如果正在工作，先停止工作
-    if (isWorking.value) {
-      await pauseWork()
-    }
-    
-    // 更新任务状态为已完成
-    await taskApi.updateTask(currentTask.value.id, {
-      status: 'completed'
-    })
-    
-    // 显示成功提示
-    ElMessage.success('任务已完成')
-    
-    // 刷新任务列表
-    await fetchTasks()
-    
-    // 清除当前任务
-    currentTask.value = null
-    
-    // 显示短时间弹窗提示
-    showCompactTipToast('任务已完成')
-    
-  } catch (error: any) {
-    console.error('完成任务失败:', error)
-    ElMessage.error('完成任务失败')
+  // 如果正在工作，先停止工作
+  if (isWorking.value) {
+    await pauseWork()
   }
+  
+  // 显示完成对话框让用户录入工时
+  showCompleteDialogVisible.value = true
+}
+
+// 任务完成成功处理
+const handleTaskCompleteSuccess = async () => {
+  // 刷新任务列表
+  await fetchTasks()
+  
+  // 清除当前任务
+  currentTask.value = null
+  
+  // 显示短时间弹窗提示
+  showCompactTipToast('任务已完成')
 }
 
 // 获取当前任务索引
