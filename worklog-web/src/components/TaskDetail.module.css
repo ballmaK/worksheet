@@ -943,4 +943,57 @@
   border-color: #667eea;
   box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
   background: white;
+}
+
+/* 快速工时选择区域样式 */
+.quick-hours-section {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.quick-hours-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.quick-hours-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quick-hours-tag {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.quick-hours-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 实际工时显示样式 */
+.actual-hours-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.actual-hours-display :global(.el-tag) {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.actual-hours-display :global(.el-tag .el-icon) {
+  margin-right: 4px;
 } 

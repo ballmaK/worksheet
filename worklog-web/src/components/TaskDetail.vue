@@ -322,6 +322,19 @@
           </div>
         </div>
 
+        <!-- 实际工时（已完成任务显示） -->
+        <div v-if="task && task.actual_hours !== undefined && task.actual_hours > 0" :class="styles['info-item']">
+          <div :class="styles['info-label']">实际工时</div>
+          <div :class="styles['info-content']">
+            <div :class="styles['actual-hours-display']">
+              <el-tag type="success" size="large">
+                <el-icon><Timer /></el-icon>
+                {{ task.actual_hours.toFixed(1) }} 小时
+              </el-tag>
+            </div>
+          </div>
+        </div>
+
         <!-- 实际工时录入（仅在完成任务时显示） -->
         <div v-if="showActualHoursInput" :class="styles['info-item']">
           <div :class="styles['info-label']">实际工时</div>
@@ -398,6 +411,23 @@
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+            
+            <!-- 快速工时选择 -->
+            <div :class="styles['quick-hours-section']">
+              <div :class="styles['quick-hours-label']">快速选择工时</div>
+              <div :class="styles['quick-hours-tags']">
+                <el-tag
+                  v-for="hours in quickHoursOptions"
+                  :key="hours"
+                  :type="workLogForm.actualHours === hours ? 'success' : 'info'"
+                  :effect="workLogForm.actualHours === hours ? 'light' : 'plain'"
+                  :class="styles['quick-hours-tag']"
+                  @click="selectQuickHours(hours)"
+                >
+                  {{ hours }}h
+                </el-tag>
               </div>
             </div>
             
@@ -530,6 +560,9 @@ const timeScale = ref<Array<{label: string, date: string, datetime: Date}>>([])
 // 起始时间编辑状态
 const isEditingStartTime = ref(false)
 const editableStartTime = ref('')
+
+// 快速工时选择选项
+const quickHoursOptions = [0.5, 1, 2, 4, 6, 8, 12, 16, 24]
 
 // 任务表单
 const taskForm = ref({
@@ -1591,5 +1624,27 @@ const scrollToAssigneeSection = () => {
       assigneeSection.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   })
+}
+
+// 选择快速工时
+const selectQuickHours = (hours: number) => {
+  workLogForm.value.actualHours = hours
+  
+  // 根据工时调整时间轴范围
+  if (timeScale.value.length > 0) {
+    const startIndex = workLogForm.value.timeRange[0]
+    const endIndex = Math.min(startIndex + Math.round(hours * 2), timeScale.value.length - 1) // 每小时2个30分钟刻度
+    
+    workLogForm.value.timeRange = [startIndex, endIndex]
+    
+    // 更新时间范围
+    const startTime = timeScale.value[startIndex]
+    const endTime = timeScale.value[endIndex]
+    
+    if (startTime && endTime) {
+      workLogForm.value.startDateTime = startTime.datetime.toISOString().slice(0, 19).replace('T', ' ')
+      workLogForm.value.endDateTime = endTime.datetime.toISOString().slice(0, 19).replace('T', ' ')
+    }
+  }
 }
 </script> 
