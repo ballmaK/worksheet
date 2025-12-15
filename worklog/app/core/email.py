@@ -1,5 +1,13 @@
 from typing import Any, Dict, Optional
 from pathlib import Path
+# 修复 fastapi-mail 与 pydantic v2 的兼容性问题
+# 在导入 fastapi_mail 之前，确保 SecretStr 在 pydantic 模块中可用
+import pydantic
+from pydantic import SecretStr
+# 将 SecretStr 添加到 pydantic 模块的命名空间（fastapi_mail 需要）
+if not hasattr(pydantic, 'SecretStr'):
+    pydantic.SecretStr = SecretStr
+
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from pydantic import EmailStr, BaseModel
 from app.core.config import settings

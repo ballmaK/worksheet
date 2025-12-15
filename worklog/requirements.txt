@@ -16,6 +16,7 @@ bcrypt>=4.0.1,<5.0.0
 SpeechRecognition>=3.10.0  # 用于语音识别
 jinja2>=3.0.0,<4.0.0  # 用于消息模板渲染
 fastapi-mail>=1.4.1,<2.0.0  # 用于邮件发送
+email-validator>=2.0.0  # 用于邮箱验证，fastapi-mail的依赖
 pydantic[email]>=2.0.0,<3.0.0  # 用于邮箱验证
 pytest>=7.0.0,<8.0.0  # 用于测试
 pytest-asyncio>=0.21.0,<1.0.0  # 用于异步测试
