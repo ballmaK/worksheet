@@ -1,3 +1,6 @@
+# 首先导入 app 模块以修复 fastapi-mail 兼容性问题
+import app  # 这会执行 app/__init__.py 中的 SecretStr 修复
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api import api_router
