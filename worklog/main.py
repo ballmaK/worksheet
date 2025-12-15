@@ -1,5 +1,13 @@
-# 首先导入 app 模块以修复 fastapi-mail 兼容性问题
-import app  # 这会执行 app/__init__.py 中的 SecretStr 修复
+# 首先修复 fastapi-mail 与 pydantic v2 的兼容性问题
+# 必须在任何导入 fastapi_mail 之前执行（包括间接导入）
+import pydantic
+from pydantic import SecretStr
+# 将 SecretStr 添加到 pydantic 模块的命名空间（fastapi_mail 需要）
+if not hasattr(pydantic, 'SecretStr'):
+    pydantic.SecretStr = SecretStr
+
+# 然后导入 app 模块（确保修复代码已执行）
+import app
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
