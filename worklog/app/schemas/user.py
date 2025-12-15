@@ -83,4 +83,19 @@ class Token(BaseModel):
     token_type: str
 
 class TokenPayload(BaseModel):
-    sub: Optional[str] = None 
+    sub: Optional[str] = None
+
+# 忘记密码请求
+class ForgotPassword(BaseModel):
+    email: EmailStr
+
+# 重置密码请求
+class ResetPassword(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=6)
+    
+    @validator('new_password')
+    def validate_password(cls, v):
+        if len(v) < 6:
+            raise ValueError('密码长度必须至少为6个字符')
+        return v 

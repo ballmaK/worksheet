@@ -95,5 +95,23 @@ export const userApi = {
       url: `/users/${id}`,
       method: 'delete'
     })
+  },
+
+  // 请求重置密码（忘记密码）
+  forgotPassword(email: string) {
+    return requestApi<{ message: string }>({
+      url: '/users/password/forgot',
+      method: 'post',
+      data: { email }
+    })
+  },
+
+  // 重置密码
+  resetPassword(token: string, newPassword: string) {
+    return requestApi<{ message: string }>({
+      url: '/users/password/reset',
+      method: 'post',
+      data: { token, new_password: newPassword }
+    })
   }
 } 

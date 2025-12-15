@@ -87,7 +87,7 @@ async def send_email(
 async def send_reset_password_email(email_to: str, email: str, token: str) -> None:
     project_name = settings.PROJECT_NAME
     subject = f"{project_name} - 密码重置"
-    link = f"{settings.SERVER_HOST}/reset-password?token={token}"
+    link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
     html = f"""
     <p>您好，</p>
     <p>您收到这封邮件是因为您（或其他人）请求重置密码。</p>

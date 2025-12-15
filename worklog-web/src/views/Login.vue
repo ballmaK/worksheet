@@ -28,6 +28,13 @@
           />
         </el-form-item>
         <el-form-item>
+          <div class="forgot-password-link">
+            <el-button type="text" @click="goToForgotPassword" class="forgot-password-button">
+              忘记密码？
+            </el-button>
+          </div>
+        </el-form-item>
+        <el-form-item>
           <el-button
             type="primary"
             class="login-button"
@@ -120,6 +127,11 @@ const handleLogin = async () => {
 const goToRegister = () => {
   router.push('/register')
 }
+
+// 跳转到忘记密码页面
+const goToForgotPassword = () => {
+  router.push('/forgot-password')
+}
 </script>
 
 <style scoped>
@@ -188,6 +200,23 @@ const goToRegister = () => {
 
 .register-button:hover {
   color: #66b1ff;
+}
+
+.forgot-password-link {
+  text-align: right;
+  width: 100%;
+  margin-top: -10px;
+  margin-bottom: 10px;
+}
+
+.forgot-password-button {
+  color: #909399;
+  font-size: 14px;
+  padding: 0;
+}
+
+.forgot-password-button:hover {
+  color: #409eff;
 }
 
 @media (max-width: 576px) {

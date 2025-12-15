@@ -85,4 +85,27 @@ def get_current_user_from_token(token: str, db: Session) -> Optional[User]:
         return None
     
     user = db.query(User).filter(User.username == username).first()
-    return user 
+    return user
+
+def create_reset_password_token(email: str) -> str:
+    """
+    创建密码重置token
+    """
+    expire = datetime.utcnow() + timedelta(hours=1)  # 1小时后过期
+    to_encode = {"email": email, "exp": expire, "type": "reset_password"}
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def verify_reset_password_token(token: str) -> Optional[str]:
+    """
+    验证密码重置token，返回邮箱地址
+    """
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("email")
+        token_type: str = payload.get("type")
+        if email is None or token_type != "reset_password":
+            return None
+        return email
+    except JWTError:
+        return None 

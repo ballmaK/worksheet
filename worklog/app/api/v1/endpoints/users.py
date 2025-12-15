@@ -7,13 +7,21 @@ from sqlalchemy import func
 from pydantic import BaseModel
 
 from app.core.config import settings
-from app.core.security import create_access_token, get_password_hash, verify_password, get_current_user
+from app.core.security import (
+    create_access_token, 
+    get_password_hash, 
+    verify_password, 
+    get_current_user,
+    create_reset_password_token,
+    verify_reset_password_token
+)
+from app.core.email import send_reset_password_email
 from app.db.session import get_db
 from app.models.user import User
 from app.models.team_member import TeamMember
 from app.models.team_invite import TeamInvite
 from app.models.enums import TEAM_ADMIN, TEAM_MEMBER
-from app.schemas.user import UserCreate, UserUpdate, UserInDB, UserResponse, Token
+from app.schemas.user import UserCreate, UserUpdate, UserInDB, UserResponse, Token, ForgotPassword, ResetPassword
 from app.core import deps
 
 router = APIRouter()
@@ -290,4 +298,96 @@ def read_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="用户不存在"
         )
-    return user 
+    return user
+
+@router.post("/password/forgot")
+async def forgot_password(
+    *,
+    db: Session = Depends(get_db),
+    forgot_password_in: ForgotPassword,
+) -> Any:
+    """
+    请求重置密码 - 发送重置密码邮件
+    """
+    # 查找用户（不区分大小写）
+    user = db.query(User).filter(
+        func.lower(User.email) == func.lower(forgot_password_in.email)
+    ).first()
+    
+    # 为了安全，即使用户不存在也返回成功消息（防止邮箱枚举攻击）
+    if not user:
+        return {"message": "如果该邮箱存在，重置密码链接已发送到您的邮箱"}
+    
+    # 生成重置密码token
+    reset_token = create_reset_password_token(user.email)
+    
+    # 保存token到数据库
+    user.reset_password_token = reset_token
+    user.reset_password_token_expires = datetime.utcnow() + timedelta(hours=1)
+    db.add(user)
+    db.commit()
+    
+    # 发送重置密码邮件
+    try:
+        await send_reset_password_email(
+            email_to=user.email,
+            email=user.email,
+            token=reset_token
+        )
+    except Exception as e:
+        # 如果邮件发送失败，记录错误但不影响响应
+        print(f"发送重置密码邮件失败: {str(e)}")
+    
+    return {"message": "如果该邮箱存在，重置密码链接已发送到您的邮箱"}
+
+@router.post("/password/reset")
+def reset_password(
+    *,
+    db: Session = Depends(get_db),
+    reset_password_in: ResetPassword,
+) -> Any:
+    """
+    重置密码 - 使用token重置密码
+    """
+    # 验证token
+    email = verify_reset_password_token(reset_password_in.token)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="无效或已过期的重置密码链接"
+        )
+    
+    # 查找用户
+    user = db.query(User).filter(
+        func.lower(User.email) == func.lower(email)
+    ).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="用户不存在"
+        )
+    
+    # 检查token是否匹配
+    if user.reset_password_token != reset_password_in.token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="无效的重置密码链接"
+        )
+    
+    # 检查token是否过期
+    if user.reset_password_token_expires and user.reset_password_token_expires < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="重置密码链接已过期，请重新申请"
+        )
+    
+    # 更新密码
+    user.hashed_password = get_password_hash(reset_password_in.new_password)
+    user.reset_password_token = None
+    user.reset_password_token_expires = None
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    return {"message": "密码重置成功"} 

@@ -28,6 +28,10 @@ class User(Base):
     reminder_enabled = Column(Boolean, default=True)
     notification_method = Column(String(20), default='email')  # 通知方式：email, sms, both
     last_reminder_at = Column(DateTime(timezone=True))
+    
+    # 密码重置相关字段
+    reset_password_token = Column(String(255), nullable=True)  # 重置密码token
+    reset_password_token_expires = Column(DateTime, nullable=True)  # token过期时间
 
     # 团队成员关系
     team_memberships = relationship(
