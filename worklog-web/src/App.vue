@@ -179,7 +179,7 @@ const isRegisterPage = computed(() => {
 const isFloatingTaskBarPage = computed(() => {
   console.log('当前路由名称:', route.name)
   console.log('当前路由路径:', route.path)
-  const isTaskBarPage = route.name === 'floating-task-bar-demo' || route.name === 'electron-task-bar-demo'
+  const isTaskBarPage = route.name === 'floating-task-bar-demo' || route.name === 'electron-task-bar-demo' || route.name === 'desktop-widget' || route.name === 'desktop-widget-task'
   console.log('是否为任务栏页面:', isTaskBarPage)
   return isTaskBarPage
 })
@@ -210,6 +210,24 @@ const handleWorkPaused = (task: any, duration: number) => {
 
 // 初始化用户状态
 onMounted(async () => {
+  // Electron 桌面小部件窗口通过 hash 加载时，跳转到对应路由
+  if (typeof window !== 'undefined' && window.location.hash) {
+    const hash = window.location.hash
+    if (hash === '#/desktop-widget') {
+      router.replace('/desktop-widget')
+      if (window.history.replaceState) {
+        window.history.replaceState(null, '', window.location.pathname)
+      }
+    } else if (hash.startsWith('#/desktop-widget-task')) {
+      const q = hash.indexOf('?')
+      const query = q > -1 ? Object.fromEntries(new URLSearchParams(hash.slice(q))) : {}
+      router.replace({ path: '/desktop-widget-task', query })
+      if (window.history.replaceState) {
+        window.history.replaceState(null, '', window.location.pathname)
+      }
+    }
+  }
+
   // 从localStorage恢复用户状态
   userStore.initFromStorage()
   

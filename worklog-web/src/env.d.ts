@@ -39,6 +39,15 @@ declare global {
       
       // Token管理
       updateToken: (token: string) => void
+
+      // 桌面待办小部件
+      widgetGetPosition?: () => Promise<[number, number]>
+      widgetMoveTo?: (x: number, y: number) => Promise<void>
+      widgetSetAlwaysOnTop?: (onTop: boolean) => Promise<boolean>
+      widgetGetPinned?: () => Promise<boolean>
+      widgetResize?: (width: number, height: number) => Promise<void>
+      widgetHide?: () => Promise<void>
+      createTaskCardWindow?: (taskId: number, index?: number) => Promise<void>
     }
     electron?: {
       showNotification: (options: any) => Promise<void>

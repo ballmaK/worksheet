@@ -9,6 +9,7 @@
     "preview": "vite preview --host 0.0.0.0 --port $PORT",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "electron:dev": "cross-env NODE_ENV=development electron .",
+    "electron:dev:all": "run-p dev electron:dev",
     "electron:build": "npm run build && electron-builder",
     "electron:preview": "npm run build && electron ."
   },

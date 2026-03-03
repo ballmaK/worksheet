@@ -13,6 +13,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showMainWindow: () => ipcRenderer.invoke('show-main-window'),
   showTaskBar: () => ipcRenderer.invoke('show-task-bar'),
   hideTaskBar: () => ipcRenderer.invoke('hide-task-bar'),
+
+  // 桌面待办小部件
+  widgetGetPosition: () => ipcRenderer.invoke('widget-get-position'),
+  widgetMoveTo: (x, y) => ipcRenderer.invoke('widget-move-to', x, y),
+  widgetSetAlwaysOnTop: (onTop) => ipcRenderer.invoke('widget-set-always-on-top', onTop),
+  widgetGetPinned: () => ipcRenderer.invoke('widget-get-pinned'),
+  widgetResize: (width, height) => ipcRenderer.invoke('widget-resize', width, height),
+  widgetHide: () => ipcRenderer.invoke('widget-hide'),
+  createTaskCardWindow: (taskId, index) => ipcRenderer.invoke('create-task-card-window', taskId, index),
   
   // 外部链接
   openExternal: (url) => ipcRenderer.invoke('open-external', url),

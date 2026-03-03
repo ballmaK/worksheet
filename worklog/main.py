@@ -20,11 +20,11 @@ from app.core.config_production import production_settings
 if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("MYSQLHOST"):
     # Railway环境或检测到MySQL环境变量时使用生产配置
     settings = production_settings
-    print("🚀 使用生产环境配置")
+    print("[Prod] 使用生产环境配置")
 else:
     # 本地开发环境
     settings = dev_settings
-    print("🔧 使用开发环境配置")
+    print("[Dev] 使用开发环境配置")
 from app.db.base import Base
 from app.db.session import engine
 from fastapi.responses import JSONResponse

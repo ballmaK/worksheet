@@ -1,12 +1,25 @@
 const { app, BrowserWindow, Menu, ipcMain, shell, Notification, Tray, nativeImage, globalShortcut, dialog } = require('electron')
 const path = require('path')
+const fs = require('fs')
 const isDev = process.env.NODE_ENV === 'development'
+
+// Windows 下开发时常见缓存目录沙箱权限问题，开发环境关闭沙箱可避免 "拒绝访问"
+if (isDev && process.platform === 'win32') {
+  app.commandLine.appendSwitch('no-sandbox')
+}
 
 let mainWindow = null
 let taskBarWindow = null
+let widgetWindow = null // 桌面待办列表小部件（汇总窗口）
+const taskCardWindows = {} // 每个任务独立小窗： taskId -> BrowserWindow
 let tray = null
 let isWorkMode = false
 let mainToken = null // 保存主窗口的token
+let widgetPinned = false
+
+const WIDGET_STATE_FILE = path.join(app.getPath('userData'), 'desktop-widget-state.json')
+const TASK_CARD_OFFSET = 30 // 多任务小窗层叠偏移（像素）
+const TASK_CARD_OPACITY = 0.32 // 任务便签窗口透明度（0~1），略透明减少遮挡桌面
 
 // 应用配置
 const APP_CONFIG = {
@@ -167,6 +180,187 @@ function createTaskBarWindow() {
   })
 }
 
+function loadWidgetState() {
+  try {
+    if (fs.existsSync(WIDGET_STATE_FILE)) {
+      const data = fs.readFileSync(WIDGET_STATE_FILE, 'utf8')
+      const state = JSON.parse(data)
+      widgetPinned = state.pinned === true
+      return state
+    }
+  } catch (e) {
+    console.warn('读取桌面小部件状态失败:', e)
+  }
+  return null
+}
+
+function saveWidgetState() {
+  if (!widgetWindow || widgetWindow.isDestroyed()) return
+  try {
+    const [x, y] = widgetWindow.getPosition()
+    const [w, h] = widgetWindow.getSize()
+    const state = { x, y, width: w, height: h, pinned: widgetPinned }
+    fs.writeFileSync(WIDGET_STATE_FILE, JSON.stringify(state, null, 2), 'utf8')
+  } catch (e) {
+    console.warn('保存桌面小部件状态失败:', e)
+  }
+}
+
+function createWidgetWindow() {
+  const state = loadWidgetState()
+  const defaultWidth = 320
+  const defaultHeight = 420
+  const { screen } = require('electron')
+  const primaryDisplay = screen.getPrimaryDisplay()
+  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize
+  const x = state ? state.x : Math.round((screenWidth - defaultWidth) / 2)
+  const y = state ? state.y : Math.round((screenHeight - defaultHeight) / 2)
+  const width = state?.width || defaultWidth
+  const height = state?.height || defaultHeight
+
+  widgetWindow = new BrowserWindow({
+    width,
+    height,
+    x,
+    y,
+    resizable: true,
+    minimizable: true,
+    maximizable: false,
+    frame: false,
+    transparent: false,
+    alwaysOnTop: state?.pinned === true,
+    skipTaskbar: true,
+    closable: true,
+    title: '当日待办',
+    backgroundColor: '#f5f7fa',
+    icon: path.join(__dirname, '../public/favicon.ico'),
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
+      webSecurity: !isDev
+    },
+    fullscreenable: false,
+    autoHideMenuBar: true,
+    show: false
+  })
+
+  widgetPinned = state?.pinned === true
+
+  if (isDev) {
+    widgetWindow.loadURL('http://localhost:5173/desktop-widget')
+  } else {
+    widgetWindow.loadFile(path.join(__dirname, '../dist/index.html'), {
+      hash: '/desktop-widget'
+    })
+  }
+
+  widgetWindow.setMovable(true)
+
+  widgetWindow.once('ready-to-show', () => {
+    // 不自动显示，由用户从托盘/菜单打开
+  })
+
+  widgetWindow.on('close', (event) => {
+    if (!app.isQuiting) {
+      event.preventDefault()
+      widgetWindow.hide()
+    }
+  })
+
+  widgetWindow.on('closed', () => {
+    widgetWindow = null
+  })
+
+  widgetWindow.on('move', () => {
+    saveWidgetState()
+  })
+  widgetWindow.on('resize', () => {
+    saveWidgetState()
+  })
+
+  // 注入 token
+  widgetWindow.webContents.on('did-finish-load', () => {
+    if (mainToken) {
+      widgetWindow.webContents.executeJavaScript(
+        `localStorage.setItem("token", "${mainToken}");`
+      ).catch(() => {})
+    }
+  })
+}
+
+/** 创建单个任务卡片小窗（每个任务独立窗口） */
+function createTaskCardWindow(taskId, index = 0) {
+  if (taskCardWindows[taskId] && !taskCardWindows[taskId].isDestroyed()) {
+    taskCardWindows[taskId].show()
+    taskCardWindows[taskId].focus()
+    return
+  }
+  const { screen } = require('electron')
+  const primaryDisplay = screen.getPrimaryDisplay()
+  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize
+  const cardWidth = 280
+  const cardHeight = 200
+  const x = Math.min(80 + index * TASK_CARD_OFFSET, screenWidth - cardWidth - 20)
+  const y = Math.min(80 + index * TASK_CARD_OFFSET, screenHeight - cardHeight - 20)
+
+  const win = new BrowserWindow({
+    width: cardWidth,
+    height: cardHeight,
+    x,
+    y,
+    resizable: true,
+    minimizable: true,
+    maximizable: false,
+    frame: false,
+    transparent: false,
+    alwaysOnTop: false,
+    skipTaskbar: true,
+    closable: true,
+    title: `任务-${taskId}`,
+    backgroundColor: '#fef08a',
+    icon: path.join(__dirname, '../public/favicon.ico'),
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
+      webSecurity: !isDev
+    },
+    fullscreenable: false,
+    autoHideMenuBar: true,
+    show: false
+  })
+
+  taskCardWindows[taskId] = win
+  win.setOpacity(TASK_CARD_OPACITY)
+
+  if (isDev) {
+    win.loadURL(`http://localhost:5173/desktop-widget-task?taskId=${taskId}`)
+  } else {
+    win.loadFile(path.join(__dirname, '../dist/index.html'), {
+      hash: `/desktop-widget-task?taskId=${taskId}`
+    })
+  }
+
+  win.setMovable(true)
+
+  win.once('ready-to-show', () => {
+    win.show()
+  })
+
+  win.on('closed', () => {
+    delete taskCardWindows[taskId]
+  })
+
+  win.webContents.on('did-finish-load', () => {
+    if (mainToken) {
+      win.webContents.executeJavaScript(
+        `localStorage.setItem("token", "${mainToken}");`
+      ).catch(() => {})
+    }
+  })
+}
+
 function createTray() {
   const iconPath = path.join(__dirname, '../public/favicon.ico')
   const icon = nativeImage.createFromPath(iconPath)
@@ -196,6 +390,15 @@ function createTray() {
         if (taskBarWindow) {
           taskBarWindow.show()
           taskBarWindow.focus()
+        }
+      }
+    },
+    {
+      label: '显示待办桌面卡片',
+      click: () => {
+        if (widgetWindow) {
+          widgetWindow.show()
+          widgetWindow.focus()
         }
       }
     },
@@ -252,6 +455,16 @@ function createMenu() {
           click: () => {
             if (taskBarWindow) {
               taskBarWindow.hide()
+            }
+          }
+        },
+        {
+          label: '显示待办桌面卡片',
+          accelerator: 'Ctrl+Shift+D',
+          click: () => {
+            if (widgetWindow) {
+              widgetWindow.show()
+              widgetWindow.focus()
             }
           }
         },
@@ -405,6 +618,15 @@ function toggleWorkMode() {
             }
           }
         },
+        {
+          label: '显示待办桌面卡片',
+          click: () => {
+            if (widgetWindow) {
+              widgetWindow.show()
+              widgetWindow.focus()
+            }
+          }
+        },
         { type: 'separator' },
         {
           label: '退出',
@@ -415,7 +637,7 @@ function toggleWorkMode() {
       ])
       tray.setContextMenu(contextMenu)
     }
-    
+
     // 发送通知
     new Notification({
       title: '工作模式已开启',
@@ -462,6 +684,15 @@ function toggleWorkMode() {
             }
           }
         },
+        {
+          label: '显示待办桌面卡片',
+          click: () => {
+            if (widgetWindow) {
+              widgetWindow.show()
+              widgetWindow.focus()
+            }
+          }
+        },
         { type: 'separator' },
         {
           label: '退出',
@@ -472,7 +703,7 @@ function toggleWorkMode() {
       ])
       tray.setContextMenu(contextMenu)
     }
-    
+
     // 发送通知
     new Notification({
       title: '工作模式已关闭',
@@ -563,6 +794,62 @@ ipcMain.handle('get-window-position', () => {
   return [0, 0]
 })
 
+// 桌面待办小部件 IPC（列表窗与每个任务独立小窗共用，通过 event.sender 区分）
+function getWidgetWin(event) {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  return win && !win.isDestroyed() ? win : null
+}
+
+ipcMain.handle('widget-get-position', (event) => {
+  const win = getWidgetWin(event)
+  return win ? win.getPosition() : [0, 0]
+})
+
+ipcMain.handle('widget-move-to', (event, x, y) => {
+  const win = getWidgetWin(event)
+  if (!win) return
+  const { screen } = require('electron')
+  const primaryDisplay = screen.getPrimaryDisplay()
+  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize
+  const [w, h] = win.getSize()
+  const clampedX = Math.max(0, Math.min(screenWidth - w, typeof x === 'number' ? x : parseInt(x) || 0))
+  const clampedY = Math.max(0, Math.min(screenHeight - h, typeof y === 'number' ? y : parseInt(y) || 0))
+  win.setPosition(Math.round(clampedX), Math.round(clampedY))
+})
+
+ipcMain.handle('widget-set-always-on-top', (event, onTop) => {
+  const win = getWidgetWin(event)
+  if (!win) return false
+  win.setAlwaysOnTop(!!onTop)
+  if (win === widgetWindow) {
+    widgetPinned = !!onTop
+    saveWidgetState()
+  }
+  return !!onTop
+})
+
+ipcMain.handle('widget-get-pinned', (event) => {
+  const win = getWidgetWin(event)
+  return win ? win.isAlwaysOnTop() : false
+})
+
+ipcMain.handle('widget-resize', (event, width, height) => {
+  const win = getWidgetWin(event)
+  if (!win) return
+  const w = typeof width === 'number' ? width : parseInt(width) || 320
+  const h = typeof height === 'number' ? height : parseInt(height) || 420
+  win.setSize(w, h)
+})
+
+ipcMain.handle('widget-hide', (event) => {
+  const win = getWidgetWin(event)
+  if (win) win.hide()
+})
+
+ipcMain.handle('create-task-card-window', (event, taskId, index) => {
+  createTaskCardWindow(taskId, index ?? 0)
+})
+
 ipcMain.handle('open-external', (event, url) => {
   shell.openExternal(url)
 })
@@ -591,6 +878,7 @@ ipcMain.handle('show-notification', (event, options) => {
 app.whenReady().then(() => {
   createMainWindow()
   createTaskBarWindow()
+  createWidgetWindow()
   createTray()
   registerGlobalShortcuts()
   

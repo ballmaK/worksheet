@@ -44,6 +44,14 @@ ENV/
 ehthumbs.db
 Thumbs.db
 
+# Windows 保留设备名（避免误创建导致 git add 失败）
+/nul
+/con
+/prn
+/aux
+/com1
+/lpt1
+
 # Logs
 *.log
 logs/

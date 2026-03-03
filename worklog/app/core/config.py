@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     SMTP_TLS: bool = False  # 使用 SSL 时不需要 TLS
     SMTP_PORT: int = 465    # 163邮箱 SSL 端口
     SMTP_HOST: str = "smtp.163.com"
+    SMTP_TIMEOUT: int = 30  # 连接/读写超时（秒）
     SMTP_USER: str = "zkzk-11@163.com"
     SMTP_PASSWORD: str = "XX7KxqCFD633pYEh"  # 163邮箱授权码
     EMAILS_FROM_EMAIL: str = "zkzk-11@163.com"

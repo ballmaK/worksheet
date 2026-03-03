@@ -11,6 +11,23 @@ logger = logging.getLogger(__name__)
 class EmailSchema(BaseModel):
     email: EmailStr
 
+
+def _use_ssl_tls() -> bool:
+    """465 端口必须用隐式 SSL（一连接就加密）；587 才用 STARTTLS。"""
+    port = getattr(settings, "SMTP_PORT", 465)
+    if port == 465:
+        return True   # 465 固定用 SSL，忽略 SMTP_TLS 环境变量
+    return not getattr(settings, "SMTP_TLS", False)
+
+
+def _use_starttls() -> bool:
+    """仅非 465 端口时根据 SMTP_TLS 决定是否 STARTTLS。"""
+    port = getattr(settings, "SMTP_PORT", 465)
+    if port == 465:
+        return False  # 465 不用 STARTTLS
+    return getattr(settings, "SMTP_TLS", False)
+
+
 conf = ConnectionConfig(
     MAIL_USERNAME=settings.SMTP_USER,
     MAIL_PASSWORD=settings.SMTP_PASSWORD,
@@ -18,10 +35,11 @@ conf = ConnectionConfig(
     MAIL_PORT=settings.SMTP_PORT,
     MAIL_SERVER=settings.SMTP_HOST,
     MAIL_FROM_NAME=settings.EMAILS_FROM_NAME,
-    MAIL_STARTTLS=settings.SMTP_TLS,  # 使用配置中的 TLS 设置
-    MAIL_SSL_TLS=not settings.SMTP_TLS,  # 如果使用 TLS，则不使用 SSL
+    MAIL_STARTTLS=_use_starttls(),
+    MAIL_SSL_TLS=_use_ssl_tls(),
     USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True   # 验证SSL证书
+    VALIDATE_CERTS=True,
+    TIMEOUT=getattr(settings, "SMTP_TIMEOUT", 60),
 )
 
 async def send_email(

@@ -135,6 +135,18 @@ const router = createRouter({
       name: 'messages',
       component: () => import('@/views/MessageCenter.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/desktop-widget',
+      name: 'desktop-widget',
+      component: () => import('@/views/DesktopWidget.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/desktop-widget-task',
+      name: 'desktop-widget-task',
+      component: () => import('@/views/DesktopWidgetTask.vue'),
+      meta: { requiresAuth: true }
     }
     // 隐藏测试路由
     /*
