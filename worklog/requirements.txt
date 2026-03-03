@@ -1,5 +1,6 @@
 fastapi>=0.100.0,<0.101.0
-pydantic>=2.4.2,<3.0.0
+# Pydantic 2.12+ 移除了 FieldInfo.in_，会导致 FastAPI 0.100.x 报错，故限制在 2.12 前
+pydantic>=2.4.2,<2.12.0
 pydantic-settings>=2.0.3,<3.0.0
 uvicorn>=0.15.0,<0.16.0
 python-jose[cryptography]>=3.3.0,<4.0.0
@@ -17,7 +18,7 @@ SpeechRecognition>=3.10.0  # 用于语音识别
 jinja2>=3.0.0,<4.0.0  # 用于消息模板渲染
 fastapi-mail>=1.4.1,<2.0.0  # 用于邮件发送
 email-validator>=2.0.0  # 用于邮箱验证，fastapi-mail的依赖
-pydantic[email]>=2.0.0,<3.0.0  # 用于邮箱验证
+pydantic[email]>=2.4.2,<2.12.0  # 与上方 pydantic 一致，避免 FieldInfo.in_ 兼容问题
 pytest>=7.0.0,<8.0.0  # 用于测试
 pytest-asyncio>=0.21.0,<1.0.0  # 用于异步测试
 httpx>=0.24.0,<1.0.0  # 用于HTTP客户端测试
