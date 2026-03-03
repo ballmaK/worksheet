@@ -1,12 +1,29 @@
 from typing import Any, Dict, Optional
 from pathlib import Path
+import socket
+import logging
 # 注意：SecretStr 的修复应该在 app/__init__.py 中完成
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from pydantic import EmailStr, BaseModel
 from app.core.config import settings
-import logging
 
 logger = logging.getLogger(__name__)
+
+# 云环境（如 Railway）出站 IPv6 可能不通，SMTP 解析到 IPv6 会超时，强制仅用 IPv4
+_original_getaddrinfo = socket.getaddrinfo
+_smtp_host = getattr(settings, "SMTP_HOST", "")
+
+
+def _getaddrinfo_ipv4_only(host, port, family=0, type=0, proto=0, flags=0):
+    if host == _smtp_host and (family == 0 or family == socket.AF_INET6):
+        results = _original_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+        if results:
+            return results
+    return _original_getaddrinfo(host, port, family, type, proto, flags)
+
+
+socket.getaddrinfo = _getaddrinfo_ipv4_only
+
 
 class EmailSchema(BaseModel):
     email: EmailStr
