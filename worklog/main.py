@@ -1,10 +1,12 @@
 # 首先修复 fastapi-mail 与 pydantic v2 的兼容性问题
-# 必须在任何导入 fastapi_mail 之前执行（包括间接导入）
+# fastapi_mail.config 使用 SecretStr 但未 import，需在任意可能导入 fastapi_mail 之前注入
+import builtins
 import pydantic
 from pydantic import SecretStr
-# 将 SecretStr 添加到 pydantic 模块的命名空间（fastapi_mail 需要）
-if not hasattr(pydantic, 'SecretStr'):
+if not hasattr(pydantic, "SecretStr"):
     pydantic.SecretStr = SecretStr
+# 注入到 builtins，使 fastapi_mail 等未显式 import SecretStr 的模块也能解析
+builtins.SecretStr = SecretStr
 
 # 然后导入 app 模块（确保修复代码已执行）
 import app
